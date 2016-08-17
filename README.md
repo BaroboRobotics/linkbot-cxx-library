@@ -1,3 +1,3 @@
-# Linkbot C++ Binding
+# Linkbot C++ Library
 
-This repository contains a C++ language binding for communicating with the Linkbot.
+This repository contains a C++ language library for communicating with the Linkbot.

@@ -15,17 +15,17 @@
 // You should have received a copy of the GNU General Public License
 // along with liblinkbot.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <linkbot/linkbot.h>
-#include <stdio.h>
+#ifndef LINKBOT_ERROR_HPP
+#define LINKBOT_ERROR_HPP
 
-int main(int argc, char** argv)
-{
-    if (argc < 2) {
-        printf("Usage: %s <serial-id> \n", argv[0]);
-        return 1;
-    }
+#include <stdexcept>
 
-    Linkbot* l;
-    l = linkbotFromSerialId(argv[1]);
-    linkbotDelete(l);
+namespace barobo {
+
+struct Error : std::runtime_error {
+    explicit Error (std::string s) : std::runtime_error(s) {}
+};
+
 }
+
+#endif

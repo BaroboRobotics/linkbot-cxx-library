@@ -1,5 +1,22 @@
-#include <baromesh/linkbot.h>
-#include <baromesh/linkbot.hpp>
+// Copyright (c) 2013-2016 Barobo, Inc.
+//
+// This file is part of liblinkbot.
+//
+// liblinkbot is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// liblinkbot is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with liblinkbot.  If not, see <http://www.gnu.org/licenses/>.
+
+#include <linkbot/linkbot.h>
+#include <linkbot/linkbot.hpp>
 
 #include <iostream>
 #include <string>
@@ -7,12 +24,12 @@
 #include <cstdio>
 #include <cstring>
 
-namespace baromesh {
-
 struct Linkbot {
+#if 0
     Linkbot (const char* host, const char* service)
         : impl(std::string(host), std::string(service))
     {}
+#endif
 
     Linkbot (const char* serialId)
         : impl(std::string(serialId))
@@ -21,10 +38,7 @@ struct Linkbot {
     barobo::Linkbot impl;
 };
 
-}
-
-using namespace baromesh;
-
+#if 0
 Linkbot* linkbotFromTcpEndpoint(const char* host, const char* service)
 {
     try {
@@ -35,6 +49,7 @@ Linkbot* linkbotFromTcpEndpoint(const char* host, const char* service)
         return nullptr;
     }
 }
+#endif
 
 Linkbot* linkbotFromSerialId(const char* serialId)
 {
@@ -70,49 +85,62 @@ do \
 
 /* GETTERS */
 
-int linkbotGetAccelerometer(Linkbot *l, int *timestamp, double *x, double *y,
+int linkbotGetAccelerometer(Linkbot* l, int *timestamp, double *x, double *y,
                            double *z)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(getAccelerometer, *timestamp, *x, *y, *z);
 }
 
-int linkbotGetBatteryVoltage(Linkbot *l, double* voltage)
+int linkbotGetBatteryVoltage(Linkbot* l, double* voltage)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(getBatteryVoltage, *voltage);
 }
 
-int linkbotGetFormFactor(Linkbot *l, barobo::FormFactor::Type *form)
+int linkbotGetFormFactor(Linkbot* l, LinkbotFormFactor *form)
 {
-    *form = barobo::FormFactor::I;
+    *form = LINKBOT_FORM_FACTOR_I;
     LINKBOT_C_WRAPPER_FUNC_IMPL(getFormFactor, *form);
 }
 
-int linkbotGetJointAngles(Linkbot *l, int *timestamp, double *j1, double *j2, double *j3)
+int linkbotGetJointAngles(Linkbot* l, int *timestamp, double *j1, double *j2, double *j3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(getJointAngles, *timestamp, *j1, *j2, *j3);
 }
 
-int linkbotGetJointSpeeds(Linkbot *l, double *s1, double *s2, double *s3)
+int linkbotGetJointSpeeds(Linkbot* l, double *s1, double *s2, double *s3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(getJointSpeeds, *s1, *s2, *s3);
 }
 
-int linkbotGetJointStates(Linkbot *l, int *timestamp,
-                          barobo::JointState::Type* j1,
-                          barobo::JointState::Type* j2,
-                          barobo::JointState::Type* j3)
+int linkbotGetJointStates(Linkbot* l, int *timestamp,
+                          LinkbotJointState* j1,
+                          LinkbotJointState* j2,
+                          LinkbotJointState* j3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(getJointStates, *timestamp, *j1, *j2, *j3);
 }
 
-int linkbotGetLedColor(Linkbot *l, int *r, int *g, int *b)
+int linkbotGetLedColor(Linkbot* l, int *r, int *g, int *b)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(getLedColor, *r, *g, *b);
 }
 
-int linkbotGetVersions (Linkbot* l, unsigned* major, unsigned* minor, unsigned* patch)
+int linkbotGetVersionString (Linkbot* l, char* v, unsigned n)
 {
-    LINKBOT_C_WRAPPER_FUNC_IMPL(getVersions, *major, *minor, *patch);
+    if (!l || !n) {
+        return -1;
+    }
+    std::string versionString;
+    try {
+        l->impl.getVersionString(versionString);
+        strncpy(v, versionString.c_str(), n);
+        v[n-1] = '\0';
+        return 0;
+    }
+    catch (std::exception& e) {
+        fprintf(stderr, "Runtime exception: %s\n", e.what());
+        return -1;
+    }
 }
 
 int linkbotGetSerialId(Linkbot* l, char* serialId)
@@ -132,6 +160,7 @@ int linkbotGetSerialId(Linkbot* l, char* serialId)
         return -1;
     }
 }
+
 int linkbotGetJointSafetyThresholds(Linkbot* l, int* t1, int* t2, int* t3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(getJointSafetyThresholds, *t1, *t2, *t3);
@@ -144,36 +173,36 @@ int linkbotGetJointSafetyAngles(Linkbot* l, double* t1, double* t2, double* t3)
 
 /* SETTERS */
 
-int linkbotSetAlphaI(baromesh::Linkbot *l, int mask, double a1, double a2, double a3)
+int linkbotSetAlphaI(Linkbot* l, int mask, double a1, double a2, double a3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setJointAccelI, mask, a1, a2, a3);
 }
 
-int linkbotSetAlphaF(baromesh::Linkbot *l, int mask, double a1, double a2, double a3)
+int linkbotSetAlphaF(Linkbot* l, int mask, double a1, double a2, double a3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setJointAccelF, mask, a1, a2, a3);
 }
 
-int linkbotResetEncoderRevs(Linkbot *l)
+int linkbotResetEncoderRevs(Linkbot* l)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(resetEncoderRevs);
 }
 
-int linkbotSetBuzzerFrequency(Linkbot *l, float freq)
+int linkbotSetBuzzerFrequency(Linkbot* l, float freq)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setBuzzerFrequency, freq);
 }
 
-int linkbotSetJointSpeeds(Linkbot *l, int mask, double j1, double j2,
+int linkbotSetJointSpeeds(Linkbot* l, int mask, double j1, double j2,
                           double j3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setJointSpeeds, mask, j1, j2, j3);
 }
 
-int linkbotSetJointStates(Linkbot *l, int mask,
-        barobo::JointState::Type s1, double d1,
-        barobo::JointState::Type s2, double d2,
-        barobo::JointState::Type s3, double d3
+int linkbotSetJointStates(Linkbot* l, int mask,
+        LinkbotJointState s1, double d1,
+        LinkbotJointState s2, double d2,
+        LinkbotJointState s3, double d3
         )
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setJointStates, mask,
@@ -182,10 +211,10 @@ int linkbotSetJointStates(Linkbot *l, int mask,
         s3, d3);
 }
 
-int linkbotSetJointStatesTimed(Linkbot *l, int mask,
-        barobo::JointState::Type s1, double d1, double timeout1, barobo::JointState::Type end1,
-        barobo::JointState::Type s2, double d2, double timeout2, barobo::JointState::Type end2,
-        barobo::JointState::Type s3, double d3, double timeout3, barobo::JointState::Type end3
+int linkbotSetJointStatesTimed(Linkbot* l, int mask,
+        LinkbotJointState s1, double d1, double timeout1, LinkbotJointState end1,
+        LinkbotJointState s2, double d2, double timeout2, LinkbotJointState end2,
+        LinkbotJointState s3, double d3, double timeout3, LinkbotJointState end3
         )
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setJointStates, mask,
@@ -194,27 +223,27 @@ int linkbotSetJointStatesTimed(Linkbot *l, int mask,
         s3, d3, timeout3, end3);
 }
 
-int linkbotSetLedColor(baromesh::Linkbot *l, int r, int g, int b)
+int linkbotSetLedColor(Linkbot* l, int r, int g, int b)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setLedColor, r, g, b);
 }
 
-int linkbotSetJointSafetyThresholds(baromesh::Linkbot *l, int mask, int t1, int t2, int t3)
+int linkbotSetJointSafetyThresholds(Linkbot* l, int mask, int t1, int t2, int t3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setJointSafetyThresholds, mask, t1, t2, t3);
 }
 
-int linkbotSetJointSafetyAngles(baromesh::Linkbot *l, int mask, double t1, double t2, double t3)
+int linkbotSetJointSafetyAngles(Linkbot* l, int mask, double t1, double t2, double t3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(setJointSafetyAngles, mask, t1, t2, t3);
 }
 
 /* MOVEMENT */
 
-int linkbotMoveAccel(Linkbot *l, int mask, int relativeMask,
-    double a0, double timeout0, barobo::JointState::Type endstate0,
-    double a1, double timeout1, barobo::JointState::Type endstate1,
-    double a2, double timeout2, barobo::JointState::Type endstate2)
+int linkbotMoveAccel(Linkbot* l, int mask, int relativeMask,
+    double a0, double timeout0, LinkbotJointState endstate0,
+    double a1, double timeout1, LinkbotJointState endstate1,
+    double a2, double timeout2, LinkbotJointState endstate2)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(moveAccel, mask, relativeMask,
             a0, timeout0, endstate0,
@@ -222,13 +251,13 @@ int linkbotMoveAccel(Linkbot *l, int mask, int relativeMask,
             a2, timeout2, endstate2);
 }
 
-int linkbotMoveSmooth(Linkbot *l, int mask, int relativeMask,
+int linkbotMoveSmooth(Linkbot* l, int mask, int relativeMask,
     double a0, double a1, double a2)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(moveSmooth, mask, relativeMask, a0, a1, a2);
 }
 
-int linkbotMoveContinuous(Linkbot *l, int mask,
+int linkbotMoveContinuous(Linkbot* l, int mask,
                           double d1,
                           double d2,
                           double d3)
@@ -236,43 +265,43 @@ int linkbotMoveContinuous(Linkbot *l, int mask,
     LINKBOT_C_WRAPPER_FUNC_IMPL(moveContinuous, mask, d1, d2, d3);
 }
 
-int linkbotWriteEeprom(Linkbot *l, unsigned int address, const char *data, unsigned int size)
+int linkbotWriteEeprom(Linkbot* l, unsigned int address, const char *data, unsigned int size)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(writeEeprom, uint32_t(address), (uint8_t*)(data), size_t(size));
 }
 
-int linkbotDrive(Linkbot *l, int mask, double j1, double j2, double j3)
+int linkbotDrive(Linkbot* l, int mask, double j1, double j2, double j3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(drive, mask, j1, j2, j3);
 }
 
-int linkbotDriveTo(Linkbot *l, int mask, double j1, double j2, double j3)
+int linkbotDriveTo(Linkbot* l, int mask, double j1, double j2, double j3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(driveTo, mask, j1, j2, j3);
 }
 
-int linkbotMove(Linkbot *l, int mask, double j1, double j2, double j3)
+int linkbotMove(Linkbot* l, int mask, double j1, double j2, double j3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(move, mask, j1, j2, j3);
 }
 
-int linkbotMoveTo(Linkbot *l, int mask, double j1, double j2, double j3) {
+int linkbotMoveTo(Linkbot* l, int mask, double j1, double j2, double j3) {
     LINKBOT_C_WRAPPER_FUNC_IMPL(moveTo, mask, j1, j2, j3);
 }
 
-int linkbotMotorPower(Linkbot *l, int mask, int m1, int m2, int m3)
+int linkbotMotorPower(Linkbot* l, int mask, int m1, int m2, int m3)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(motorPower, mask, m1, m2, m3);
 }
 
-int linkbotStop(Linkbot *l, int mask) {
+int linkbotStop(Linkbot* l, int mask) {
     LINKBOT_C_WRAPPER_FUNC_IMPL(stop, mask);
 }
 
 /* CALLBACKS */
 
-#define SET_EVENT_CALLBACK(cbname) \
-int linkbotSet##cbname(Linkbot* l, barobo::cbname cb, void* userData) \
+#define LINKBOT_DEF_EVENT_CALLBACK(cbname) \
+int linkbotSet##cbname(Linkbot* l, Linkbot##cbname cb, void* userData) \
 { \
     if (!l) { \
         return -1; \
@@ -287,14 +316,14 @@ int linkbotSet##cbname(Linkbot* l, barobo::cbname cb, void* userData) \
     } \
 }
 
-SET_EVENT_CALLBACK(ButtonEventCallback)
-//SET_EVENT_CALLBACK(EncoderEventCallback)
-SET_EVENT_CALLBACK(JointEventCallback)
-SET_EVENT_CALLBACK(AccelerometerEventCallback)
-SET_EVENT_CALLBACK(ConnectionTerminatedCallback)
+LINKBOT_DEF_EVENT_CALLBACK(ButtonEventCallback)
+//LINKBOT_DEF_EVENT_CALLBACK(EncoderEventCallback)
+LINKBOT_DEF_EVENT_CALLBACK(JointEventCallback)
+LINKBOT_DEF_EVENT_CALLBACK(AccelerometerEventCallback)
+LINKBOT_DEF_EVENT_CALLBACK(ConnectionTerminatedCallback)
 
 int linkbotSetEncoderEventCallback(Linkbot* l,
-                                   barobo::EncoderEventCallback cb,
+                                   LinkbotEncoderEventCallback cb,
                                    float granularity,
                                    void* userData)
 {
@@ -311,5 +340,4 @@ int linkbotSetEncoderEventCallback(Linkbot* l,
     }
 }
 
-
-#undef SET_EVENT_CALLBACK
+#undef LINKBOT_DEF_EVENT_CALLBACK
