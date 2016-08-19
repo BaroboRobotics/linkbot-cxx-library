@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2.1)
-project(linkbot VERSION 0.3.0 LANGUAGES CXX C)
+project(liblinkbot VERSION 0.3.0 LANGUAGES CXX C)
 
 set(preRelease "dev")
 # Examples: dev, rc.0, rc.1, some-feature-branch-name
@@ -15,9 +15,9 @@ set(preRelease "dev")
 # version string WITHOUT pre-release data. This is because the lack of pre-release data indicates
 # an actual release.
 
-set(LIBRARY_VERSION_STRING "${PROJECT_VERSION}")
+set(PROJECT_VERSION_STRING "${PROJECT_VERSION}")
 if(preRelease)
-    set(LIBRARY_VERSION_STRING "${LIBRARY_VERSION_STRING}-${preRelease}")
+    set(PROJECT_VERSION_STRING "${PROJECT_VERSION_STRING}-${preRelease}")
 endif()
 
 if(WIN32 AND NOT CMAKE_COMPILER_IS_GNUCXX)
@@ -34,8 +34,6 @@ find_package(cxx-util)
 find_package(linkbot-interfaces)
 find_package(ribbon-bridge)
 
-find_package(Threads)
-
 set(sources
     src/linkbot.cpp
     src/linkbot.c.cpp
@@ -46,7 +44,6 @@ add_library(linkbot ${sources})
 target_link_libraries(linkbot
     PUBLIC
         barobo::rpc barobo::cxx-util barobo::robot-interface barobo::daemon-interface
-        #${CMAKE_THREAD_LIBS_INIT}
         Boost::filesystem Boost::system Boost::log Boost::thread
 )
 
@@ -57,7 +54,7 @@ target_include_directories(linkbot
 target_compile_definitions(linkbot
     PRIVATE
         LIBRARY_NAME=linkbot
-        LIBRARY_VERSION_STRING=${LIBRARY_VERSION_STRING}
+        LIBRARY_VERSION_STRING=${PROJECT_VERSION_STRING}
 )
 
 if(MSVC)
@@ -126,3 +123,37 @@ install(FILES
     "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-configVersion.cmake"
     DESTINATION cmake
 )
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(CPACK_DEBIAN_PACKAGE_NAME "${PROJECT_NAME}")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "network")
+
+    set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION_STRING}-0)
+    set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+    set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+    set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+    # Debian versions must end with a -debian_revision component to allow the use of hyphens in the
+    # upstream_version (i.e., DAEMON_VERSION_STRING) component.
+
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/")
+    set(CPACK_PACKAGE_VENDOR "Barobo")
+    set(CPACK_PACKAGE_CONTACT david@barobo.com)
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.19), linkbotd (>= 0.4)")
+    # Depends on coreutils for `stdbuf`, udev for `udevadm`.
+
+    get_filename_component(compiler ${CMAKE_CXX_COMPILER} NAME)
+    if(${compiler} MATCHES "arm.*")
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
+    elseif(${compiler} MATCHES "aarch64.*")
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
+    else()
+        execute_process(COMMAND dpkg --print-architecture
+                        OUTPUT_VARIABLE DPKG_ARCH
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "${DPKG_ARCH}")
+    endif()
+    message(STATUS "Packaging for architecture ${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+    set (CPACK_PACKAGE_FILE_NAME
+    "${CPACK_DEBIAN_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+    include(CPack)
+endif()
