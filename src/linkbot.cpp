@@ -144,7 +144,8 @@ auto asyncResolveSerialId (WebSocketClient& daemon, const std::string& serialId,
             }
 
             using std::to_string;
-            op.complete(ec, std::make_pair(std::string(arg.endpoint.address), to_string(port)));
+            op.complete(ec, std::make_pair(daemonHostName(), to_string(port)));
+            // arg.endpoint.host is deprecated: use daemonHostName()
         }
     };
 
