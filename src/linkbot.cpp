@@ -76,7 +76,7 @@ std::string daemonServiceName () {
 }
 
 std::chrono::milliseconds requestTimeout () {
-    return std::chrono::milliseconds{1000};
+    return std::chrono::seconds{10};
 }
 
 void initializeLoggingCore () {
