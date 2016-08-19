@@ -84,7 +84,7 @@ void initializeLoggingCore () {
     std::call_once(flag, [] {
         namespace po = boost::program_options;
 
-        auto optsDesc = util::log::optionsDescription();
+        auto optsDesc = util::log::optionsDescription(util::log::ConsoleDefault::OFF);
         auto options = po::variables_map{};
 
         // We're in library code, so interpret environment variables as command line arguments.
