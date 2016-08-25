@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2.1)
 project(liblinkbot VERSION 0.3.0 LANGUAGES CXX C)
 
-set(preRelease "rc.1")
+set(preRelease "")
 # Examples: dev, rc.0, rc.1, some-feature-branch-name
 #
 # Pre-release data must be a '.'-delimited list of zero or more identifiers composed of one or more
