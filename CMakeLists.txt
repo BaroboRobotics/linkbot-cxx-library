@@ -16,8 +16,19 @@ set(preRelease "dev")
 # an actual release.
 
 set(PROJECT_VERSION_STRING "${PROJECT_VERSION}")
+set(PROJECT_DEBIAN_VERSION_STRING "${PROJECT_VERSION}")
 if(preRelease)
     set(PROJECT_VERSION_STRING "${PROJECT_VERSION_STRING}-${preRelease}")
+    set(PROJECT_DEBIAN_VERSION_STRING "${PROJECT_DEBIAN_VERSION_STRING}~${preRelease}-0")
+    # We follow semantic versioning (semver.org) conventions in our version string: versions with
+    # pre-release data sort before versions without pre-release data. Debian's version comparison
+    # algorithm sorts them oppositely: pre-release versions sort after releases. Debian sorts the
+    # '~' character before the empty string, however, so the solution is to delimit the version
+    # numbers and pre-release data with a '~'.
+    #
+    # Debian versions must end with a -debian_revision component to allow the use of hyphens in the
+    # upstream_version (i.e., PROJECT_VERSION_STRING) component. We explicitly allow hyphens in the
+    # pre-release data section of our version, per semantic versioning convention.
 endif()
 
 if(WIN32 AND NOT CMAKE_COMPILER_IS_GNUCXX)
@@ -128,12 +139,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(CPACK_DEBIAN_PACKAGE_NAME "${PROJECT_NAME}")
     set(CPACK_DEBIAN_PACKAGE_SECTION "network")
 
-    set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION_STRING}-0)
+    set(CPACK_PACKAGE_VERSION ${PROJECT_DEBIAN_VERSION_STRING})
     set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
     set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
     set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
-    # Debian versions must end with a -debian_revision component to allow the use of hyphens in the
-    # upstream_version (i.e., DAEMON_VERSION_STRING) component.
 
     set(CPACK_PACKAGING_INSTALL_PREFIX "/")
     set(CPACK_PACKAGE_VENDOR "Barobo")
