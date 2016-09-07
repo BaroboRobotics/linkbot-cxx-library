@@ -171,14 +171,16 @@ public:
     void setJointMovementStateTimeNB(LinkbotJoint id, robotJointState_t dir, double seconds);
     void setJointSafetyAngle(double angle);
     void setJointSafetyAngleTimeout(double timeout);
+    #endif
     void setJointSpeed(LinkbotJoint id, double speed);
     void setJointSpeeds(double speed1, double speed2, double speed3);
     void setJointSpeedRatio(LinkbotJoint id, double ratio);
     void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
     void setJointPower(LinkbotJoint id, double power);
     void setLEDColorRGB(int r, int g, int b);
-    void setLEDColor(char *color);
+    //void setLEDColor(char *color);
     void setMotorPowers(double p1, double p2, double p3);
+#if 0 // TODO
     void setMovementStateNB( robotJointState_t dir1,
             robotJointState_t dir2,
             robotJointState_t dir3);
@@ -190,9 +192,11 @@ public:
             robotJointState_t dir2,
             robotJointState_t dir3,
             double seconds);
+#endif
     void setSpeed(double speed, double radius);
 
     /* MOVEMENT */
+#if 0 // TODO
     void accelJointAngleNB(LinkbotJoint id, double acceleration, double angle);
     void accelJointTimeNB(LinkbotJoint id, double acceleration, double time);
     void accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed);
@@ -222,9 +226,11 @@ public:
     void holdJointsAtExit();
     int isMoving(int mask=0x07);
     int isConnected();
+#endif
     void move(double j1, double j2, double j3);
     void moveNB(double j1, double j2, double j3);
     void moveWait(int mask=0x07);
+#if 0 // TODO
     void moveForeverNB();
     void moveJoint(LinkbotJoint id, double angle);
     void moveJointNB(LinkbotJoint id, double angle);

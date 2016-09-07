@@ -85,3 +85,46 @@ void CLinkbot::setBuzzerFrequencyOff() {
     _l->setBuzzerFrequency(0);
 }
 
+void CLinkbot::setJointSpeed(LinkbotJoint id, double speed) {
+    _l->setJointSpeeds(1<<id, speed, speed, speed);
+}
+
+void CLinkbot::setJointSpeeds(double speed1, double speed2, double speed3) {
+    _l->setJointSpeeds(7, speed1, speed2, speed3);
+}
+
+void CLinkbot::setJointSpeedRatio(LinkbotJoint id, double ratio) {
+    setJointSpeed(id, ratio*LINKBOT_MAX_SPEED);
+}
+
+void CLinkbot::setJointSpeedRatios(double ratio1, double ratio2, double ratio3) {
+    setJointSpeeds(
+        ratio1*LINKBOT_MAX_SPEED,
+        ratio2*LINKBOT_MAX_SPEED,
+        ratio3*LINKBOT_MAX_SPEED );
+}
+
+void CLinkbot::setJointPower(LinkbotJoint id, double power) {
+    _l->motorPower(1<<id, power*255, power*255, power*255);
+}
+
+void CLinkbot::setLEDColorRGB(int r, int g, int b) {
+    _l->setLedColor(r, g, b);
+}
+
+void CLinkbot::setMotorPowers(double p1, double p2, double p3) {
+    _l->motorPower(7, p1*255, p2*255, p3*255);
+}
+
+void CLinkbot::move(double j1, double j2, double j3) {
+    moveNB(j1, j2, j3);
+    moveWait();
+}
+
+void CLinkbot::moveNB(double j1, double j2, double j3) {
+    _l->move(7, j1, j2, j3);
+}
+
+void CLinkbot::moveWait(int mask) {
+    _l->moveWait(mask);
+}
