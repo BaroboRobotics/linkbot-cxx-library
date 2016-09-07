@@ -86,6 +86,14 @@ void testMovement (std::string serialId) {
         std::cout << "moving forward slowly 200 degrees\n";
         // Note: not setting joint speeds.
         linkbot.move(jointMask, 200, 0, -200);
+        linkbot.moveWait(7);
+        std::cout << "Done moving.\n";
+
+        std::cout << "moving backward slowly 200 degrees\n";
+        // Note: not setting joint speeds.
+        linkbot.move(jointMask, -200, 0, 200);
+        linkbot.moveWait(7);
+        std::cout << "Done moving.\n";
     }
     catch (std::exception& e) {
         std::cout << std::hex;

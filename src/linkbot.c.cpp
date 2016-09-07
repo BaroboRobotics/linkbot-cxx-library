@@ -318,7 +318,7 @@ int linkbotSet##cbname(Linkbot* l, Linkbot##cbname cb, void* userData) \
 
 LINKBOT_DEF_EVENT_CALLBACK(ButtonEventCallback)
 //LINKBOT_DEF_EVENT_CALLBACK(EncoderEventCallback)
-LINKBOT_DEF_EVENT_CALLBACK(JointEventCallback)
+//LINKBOT_DEF_EVENT_CALLBACK(JointEventCallback)
 LINKBOT_DEF_EVENT_CALLBACK(AccelerometerEventCallback)
 LINKBOT_DEF_EVENT_CALLBACK(ConnectionTerminatedCallback)
 

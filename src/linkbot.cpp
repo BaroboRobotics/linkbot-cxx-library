@@ -174,6 +174,7 @@ private:
         wsConnector.asyncConnect(robot.messageQueue(), host, service, use_future).get();
         rpc::asio::asyncConnect<barobo::Robot>(robot, requestTimeout(), use_future).get();
         robotRunDone = rpc::asio::asyncRunClient<barobo::Robot>(robot, *this, use_future);
+        isMoving = 0;
     }
 
 public:
@@ -245,8 +246,25 @@ public:
     }
 
     void onBroadcast (Broadcast::jointEvent b) {
-        if (jointEventCallback) {
-            jointEventCallback(b.joint, static_cast<LinkbotJointState>(b.event), b.timestamp);
+        _onJointEvent(b.joint, static_cast<LinkbotJointState>(b.event), b.timestamp);
+    }
+
+    void _onJointEvent(int joint, LinkbotJointState event, int timestamp)
+    {
+        switch(event) {
+            case LINKBOT_JOINT_STATE_COAST:
+                // intentional fall-through
+            case LINKBOT_JOINT_STATE_HOLD:
+                isMoving &= ~(1<<joint);
+                break;
+            default:
+                break;
+        }
+        if ( ! (isMoving & moveWaitMask) ) {
+            try {
+                moveWaitPromise.set_value();
+            } catch ( const std::future_error& ) {
+            }
         }
     }
 
@@ -259,6 +277,21 @@ public:
         if (connectionTerminatedCallback) {
             connectionTerminatedCallback(b.timestamp);
         }
+    }
+
+    void setMoving(int mask) {
+        switch (formFactor) {
+            case LINKBOT_FORM_FACTOR_I:
+                mask &= 0x05;
+                break;
+            case LINKBOT_FORM_FACTOR_L:
+                mask &= 0x03;
+                break;
+            case LINKBOT_FORM_FACTOR_T:
+                mask &= 0x07;
+                break;
+        }
+        isMoving = mask;
     }
 
     std::shared_ptr<util::asio::IoThread> io;
@@ -274,6 +307,11 @@ public:
     std::function<void(int)> connectionTerminatedCallback;
 
     mutable util::log::Logger log;
+
+    int isMoving;
+    int moveWaitMask;
+    LinkbotFormFactor formFactor;
+    std::promise<void> moveWaitPromise;
 };
 
 #if 0
@@ -287,7 +325,12 @@ catch (std::exception& e) {
 
 Linkbot::Linkbot (const std::string& id) try
     : m(Linkbot::Impl::fromSerialId(id))
-{}
+{
+    // Get the form factor
+    LinkbotFormFactor form;
+    getFormFactor(form);
+    m->formFactor = form;
+}
 catch (std::exception& e) {
     throw Error(id + ": " + e.what());
 }
@@ -297,6 +340,17 @@ Linkbot::~Linkbot () {
 }
 
 using namespace std::placeholders; // _1, _2, etc.
+
+void Linkbot::initJointEventCallback () {
+    try {
+        asyncFire(m->robot, MethodIn::enableJointEvent {
+            true
+        }, requestTimeout(), use_future).get();
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+}
 
 /* GETTERS */
 
@@ -529,6 +583,7 @@ void Linkbot::setJointStates(
             case LINKBOT_JOINT_STATE_MOVING:
                 goalType[i] = barobo_Robot_Goal_Type_INFINITE;
                 controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
+                m->setMoving(1<<i);
                 break;
             default:
                 break;
@@ -583,6 +638,7 @@ void Linkbot::setJointStates(
             case LINKBOT_JOINT_STATE_MOVING:
                 goalType[i] = barobo_Robot_Goal_Type_INFINITE;
                 controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
+                m->setMoving(1<<i);
                 break;
             default:
                 break;
@@ -716,6 +772,7 @@ void Linkbot::setJointAccelF(
 void Linkbot::drive (int mask, double a0, double a1, double a2)
 {
     try {
+        m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_RELATIVE,
                                float(degToRad(a0)),
@@ -742,6 +799,7 @@ void Linkbot::drive (int mask, double a0, double a1, double a2)
 void Linkbot::driveTo (int mask, double a0, double a1, double a2)
 {
     try {
+        m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_ABSOLUTE,
                                float(degToRad(a0)),
@@ -767,6 +825,7 @@ void Linkbot::driveTo (int mask, double a0, double a1, double a2)
 
 void Linkbot::move (int mask, double a0, double a1, double a2) {
     try {
+        m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_RELATIVE,
                                float(degToRad(a0)),
@@ -786,6 +845,7 @@ void Linkbot::move (int mask, double a0, double a1, double a2) {
 
 void Linkbot::moveContinuous (int mask, double c0, double c1, double c2) {
     try {
+        m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_INFINITE, float(c0), false },
             bool(mask&0x02), { barobo_Robot_Goal_Type_INFINITE, float(c1), false },
@@ -827,7 +887,8 @@ void Linkbot::moveAccel(int mask, int relativeMask,
                     return barobo_Robot_JointState_COAST;
             }
         };
-
+        
+        m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), {
                 motionType[0],
@@ -869,6 +930,7 @@ void Linkbot::moveSmooth(int mask, int relativeMask, double a0, double a1, doubl
     }
 
     try {
+        m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), {
                 motionType[0],
@@ -897,6 +959,7 @@ void Linkbot::moveSmooth(int mask, int relativeMask, double a0, double a1, doubl
 
 void Linkbot::moveTo (int mask, double a0, double a1, double a2) {
     try {
+        m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_ABSOLUTE, float(degToRad(a0)) },
             bool(mask&0x02), { barobo_Robot_Goal_Type_ABSOLUTE, float(degToRad(a1)) },
@@ -906,6 +969,13 @@ void Linkbot::moveTo (int mask, double a0, double a1, double a2) {
     catch (std::exception& e) {
         throw Error(e.what());
     }
+}
+
+void Linkbot::moveWait(int mask) {
+    m->moveWaitMask = mask;
+    m->moveWaitPromise = std::promise<void>{};
+    auto future = m->moveWaitPromise.get_future();
+    future.wait();
 }
 
 void Linkbot::motorPower(int mask, int m1, int m2, int m3)
@@ -1006,25 +1076,6 @@ void Linkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb,
     }
     else {
         m->encoderEventCallback = nullptr;
-    }
-}
-
-void Linkbot::setJointEventCallback (LinkbotJointEventCallback cb, void* userData) {
-    const bool enable = !!cb;
-    try {
-        asyncFire(m->robot, MethodIn::enableJointEvent {
-            enable
-        }, requestTimeout(), use_future).get();
-    }
-    catch (std::exception& e) {
-        throw Error(e.what());
-    }
-
-    if (enable) {
-        m->jointEventCallback = std::bind(cb, _1, _2, _3, userData);
-    }
-    else {
-        m->jointEventCallback = nullptr;
     }
 }
 

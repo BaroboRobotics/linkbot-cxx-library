@@ -46,6 +46,7 @@ private:
     // noncopyable
     Linkbot (const Linkbot&);
     Linkbot& operator= (const Linkbot&);
+    void initJointEventCallback ();
 
 public:
     // All member functions may throw a barobo::Error exception on failure.
@@ -107,6 +108,7 @@ public:
     void moveContinuous (int mask, double, double, double);
     void moveTo (int mask, double, double, double);
     void moveSmooth(int mask, int relativeMask, double a0, double a1, double a2);
+    void moveWait(int mask);
     void motorPower(int mask, int m1, int m2, int m3);
     void stop (int mask = 0x07);
 
@@ -114,7 +116,6 @@ public:
     // will disable its respective events.
     void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
     void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
-    void setJointEventCallback (LinkbotJointEventCallback, void* userData);
     void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
     void setConnectionTerminatedCallback (LinkbotConnectionTerminatedCallback, void* userData);
 
