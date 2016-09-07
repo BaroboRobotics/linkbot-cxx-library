@@ -48,6 +48,7 @@ find_package(ribbon-bridge)
 set(sources
     src/linkbot.cpp
     src/linkbot.c.cpp
+    src/clinkbot.cpp
 )
 
 add_library(linkbot ${sources})

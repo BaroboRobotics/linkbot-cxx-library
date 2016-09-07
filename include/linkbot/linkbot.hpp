@@ -136,6 +136,178 @@ private:
     Impl* m;
 };
 
+class CLinkbot {
+public:
+    explicit CLinkbot (const std::string& serialId = "LOCL");
+
+    ~CLinkbot ();
+
+    /* GETTERS */
+
+    void getAccelerometerData(double &x, double &y, double &z);
+    void getBatteryVoltage(double &voltage);
+    //void getDistance(double &distance, double radius);
+    void getFormFactor(LinkbotFormFactor& form);
+    void getJointAngle(LinkbotJoint id, double &angle);
+    void getJointAngles(double &angle1, double &angle2, double &angle3);
+    //void getJointAngleInstant(LinkbotJoint id, double &angle);
+    //void getJointAnglesInstant(double &angle1, double &angle2, double &angle3);
+    //void getJointSafetyAngle(double &angle);
+    //void getJointSafetyAngleTimeout(double &timeout);
+    void getJointSpeed(LinkbotJoint id, double &speed);
+    void getJointSpeedRatio(LinkbotJoint id, double &ratio);
+    void getJointSpeeds(double &speed1, double &speed2, double &speed3);
+    void getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio3);
+    void getLEDColorRGB(int &r, int &g, int &b);
+    //void getLEDColor(char color[]);
+
+    /* SETTERS */
+    void setBuzzerFrequency(int frequency, double time);
+    void setBuzzerFrequencyOn(int frequency);
+    void setBuzzerFrequencyOff();
+    #if 0 //TODO 
+    void setJointMovementStateNB(LinkbotJoint id, robotJointState_t dir);
+    void setJointMovementStateTime(LinkbotJoint id, robotJointState_t dir, double seconds);
+    void setJointMovementStateTimeNB(LinkbotJoint id, robotJointState_t dir, double seconds);
+    void setJointSafetyAngle(double angle);
+    void setJointSafetyAngleTimeout(double timeout);
+    void setJointSpeed(LinkbotJoint id, double speed);
+    void setJointSpeeds(double speed1, double speed2, double speed3);
+    void setJointSpeedRatio(LinkbotJoint id, double ratio);
+    void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
+    void setJointPower(LinkbotJoint id, double power);
+    void setLEDColorRGB(int r, int g, int b);
+    void setLEDColor(char *color);
+    void setMotorPowers(double p1, double p2, double p3);
+    void setMovementStateNB( robotJointState_t dir1,
+            robotJointState_t dir2,
+            robotJointState_t dir3);
+    void setMovementStateTime( robotJointState_t dir1,
+            robotJointState_t dir2,
+            robotJointState_t dir3,
+            double seconds);
+    void setMovementStateTimeNB( robotJointState_t dir1,
+            robotJointState_t dir2,
+            robotJointState_t dir3,
+            double seconds);
+    void setSpeed(double speed, double radius);
+
+    /* MOVEMENT */
+    void accelJointAngleNB(LinkbotJoint id, double acceleration, double angle);
+    void accelJointTimeNB(LinkbotJoint id, double acceleration, double time);
+    void accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed);
+    void accelJointToMaxSpeedNB(LinkbotJoint id, double acceleration);
+    void driveAccelJointTimeNB(double radius, double acceleration,
+            double time);
+    void driveAccelToVelocityNB(double radius, double acceleration,
+            double velocity);
+    void driveAccelToMaxSpeedNB(double radius, double acceleration);
+    void driveAccelDistanceNB(double radius, double acceleration, 
+            double distance);
+    void closeGripper();
+    void closeGripperNB();
+    void driveAngle(double angle);
+    void driveAngleNB(double angle);
+    void driveBackward(double angle);
+    void driveBackwardNB(double angle);
+    void driveDistance(double distance, double radius);
+    void driveDistanceNB(double distance, double radius);
+    void driveForeverNB();
+    void driveForward(double angle);
+    void driveForwardNB(double angle);
+    void driveTime(double time);
+    void driveTimeNB(double time);
+    void holdJoint(LinkbotJoint id);
+    void holdJoints();
+    void holdJointsAtExit();
+    int isMoving(int mask=0x07);
+    int isConnected();
+    void move(double j1, double j2, double j3);
+    void moveNB(double j1, double j2, double j3);
+    void moveWait(int mask=0x07);
+    void moveForeverNB();
+    void moveJoint(LinkbotJoint id, double angle);
+    void moveJointNB(LinkbotJoint id, double angle);
+    void moveJointForeverNB(LinkbotJoint id);
+    void moveJointTime(LinkbotJoint id, double time);
+    void moveJointTimeNB(LinkbotJoint id, double time);
+    void moveJointTo(LinkbotJoint id, double angle);
+    void moveJointToNB(LinkbotJoint id, double angle);
+    void moveJointToByTrackPos(LinkbotJoint id, double angle);
+    void moveJointToByTrackPosNB(LinkbotJoint id, double angle);
+    void moveJointWait(LinkbotJoint id);
+    void moveTime(double time);
+    void moveTimeNB(double time);
+    void moveTo(double angle1, double angle2, double angle3);
+    void moveToNB(double angle1, double angle2, double angle3);
+    void moveToByTrackPos(double angle1, double angle2, double angle3);
+    void moveToByTrackPosNB(double angle1, double angle2, double angle3);
+    void moveToZero();
+    void moveToZeroNB();
+    void openGripper(double angle);
+    void openGripperNB(double angle);
+    void relaxJoint(LinkbotJoint id);
+    void relaxJoints();
+    void resetToZero();
+    void resetToZeroNB();
+    void stop();
+    void stopOneJoint(LinkbotJoint id);
+    void turnLeft(double angle, double radius, double tracklength);
+    void turnLeftNB(double angle, double radius, double tracklength);
+    void turnRight(double angle, double radius, double tracklength);
+    void turnRightNB(double angle, double radius, double tracklength);
+
+    /* MISC */
+    /*
+    void enableButtonCallback(void* userdata, void (*buttonCallback)(void* data, int button, int buttonDown));
+    void disableButtonCallback();
+    */
+    void blinkLED(double delay, int numBlinks);
+    void recordAnglesBegin(
+        robotRecordData_t &time,
+        robotRecordData_t &angle1,
+        robotRecordData_t &angle2,
+        robotRecordData_t &angle3,
+        double timeInterval = 0.1,
+        int mask = 0x07,
+        int shiftData = 1);
+    void recordAnglesEnd(int &num);
+    void recordDistanceBegin(
+        LinkbotJoint id,
+        robotRecordData_t &time,
+        robotRecordData_t &distance,
+        double radius,
+        double timeInterval = 0.1,
+        int shiftData = 1);
+    void recordDistanceEnd(LinkbotJoint id, int &num);
+
+    void recordAnglesBegin2(
+        robotRecordData_t &time,
+        robotRecordData_t &angle1,
+        robotRecordData_t &angle2,
+        robotRecordData_t &angle3,
+        int shiftData = 1);
+    void recordAnglesEnd2(int &num);
+    void recordDistanceBegin2(
+        LinkbotJoint id,
+        robotRecordData_t &time,
+        robotRecordData_t &distance,
+        double radius,
+        int shiftData = 1);
+    void recordDistanceEnd2(LinkbotJoint id, int &num);
+    void recordDistanceOffset(double distance);
+    void recordNoDataShift();
+    void enableRecordDataShift();
+    void disableRecordDataShift();
+    void delaySeconds(int seconds);
+    void systemTime(double &time);
+
+#endif // TODO
+
+private:
+    Linkbot *_l;
+};
+
 } // barobo
 
 #endif

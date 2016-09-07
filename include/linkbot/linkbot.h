@@ -46,6 +46,12 @@ enum LinkbotFormFactor {
     LINKBOT_FORM_FACTOR_T
 };
 
+enum LinkbotJoint {
+    LINKBOT_JOINT_ONE,
+    LINKBOT_JOINT_TWO,
+    LINKBOT_JOINT_THREE
+};
+
 // Keep in sync with enumeration in robot.proto
 enum LinkbotJointState {
     LINKBOT_JOINT_STATE_COAST,
