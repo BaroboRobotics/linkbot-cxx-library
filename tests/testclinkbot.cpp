@@ -44,5 +44,31 @@ int main() {
         std::cout << "Joint angle: " << n << ": " << angle << std::endl;
     }
 
+    // Get joint angles
+    linkbot.getJointAngles(x, y, z);
+    std::cout << "Joint angles: " << x << " " << y << " " <<z << std::endl;
+
+    // Get joint speed
+    for ( LinkbotJoint n : {LINKBOT_JOINT_ONE, LINKBOT_JOINT_TWO, LINKBOT_JOINT_THREE} ) {
+        double speed;
+        linkbot.getJointSpeed(n, speed);
+        std::cout << "Joint speed: " << n << ": " << speed << std::endl;
+    }
+
+    // Get joint speed ratio
+    for ( LinkbotJoint n : {LINKBOT_JOINT_ONE, LINKBOT_JOINT_TWO, LINKBOT_JOINT_THREE} ) {
+        double speed;
+        linkbot.getJointSpeedRatio(n, speed);
+        std::cout << "Joint speed ratio: " << n << ": " << speed << std::endl;
+    }
+
+    // Get joint speeds
+    linkbot.getJointSpeeds(x, y, z);
+    std::cout << "Joint speeds: " << x << " " << y << " " <<z << std::endl;
+
+    // Get joint speed ratios
+    linkbot.getJointSpeedRatios(x, y, z);
+    std::cout << "Joint speed ratios: " << x << " " << y << " " <<z << std::endl;
+
     return 0;
 }
