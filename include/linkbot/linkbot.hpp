@@ -210,17 +210,6 @@ public:
             double distance);
     void closeGripper();
     void closeGripperNB();
-    void driveAngle(double angle);
-    void driveAngleNB(double angle);
-    void driveBackward(double angle);
-    void driveBackwardNB(double angle);
-    void driveDistance(double distance, double radius);
-    void driveDistanceNB(double distance, double radius);
-    void driveForeverNB();
-    void driveForward(double angle);
-    void driveForwardNB(double angle);
-    void driveTime(double time);
-    void driveTimeNB(double time);
     void holdJoint(LinkbotJoint id);
     void holdJoints();
     void holdJointsAtExit();
@@ -232,8 +221,10 @@ public:
     void moveWait(int mask=0x07);
 #if 0 // TODO
     void moveForeverNB();
+#endif
     void moveJoint(LinkbotJoint id, double angle);
     void moveJointNB(LinkbotJoint id, double angle);
+#if 0
     void moveJointForeverNB(LinkbotJoint id);
     void moveJointTime(LinkbotJoint id, double time);
     void moveJointTimeNB(LinkbotJoint id, double time);
@@ -241,11 +232,15 @@ public:
     void moveJointToNB(LinkbotJoint id, double angle);
     void moveJointToByTrackPos(LinkbotJoint id, double angle);
     void moveJointToByTrackPosNB(LinkbotJoint id, double angle);
+#endif
     void moveJointWait(LinkbotJoint id);
+#if 0
     void moveTime(double time);
     void moveTimeNB(double time);
+#endif
     void moveTo(double angle1, double angle2, double angle3);
     void moveToNB(double angle1, double angle2, double angle3);
+#if 0 // TODO
     void moveToByTrackPos(double angle1, double angle2, double angle3);
     void moveToByTrackPosNB(double angle1, double angle2, double angle3);
     void moveToZero();
@@ -254,9 +249,11 @@ public:
     void openGripperNB(double angle);
     void relaxJoint(LinkbotJoint id);
     void relaxJoints();
+#endif
     void resetToZero();
     void resetToZeroNB();
-    void stop();
+    void stop(int mask = 0x07);
+#if 0
     void stopOneJoint(LinkbotJoint id);
     void turnLeft(double angle, double radius, double tracklength);
     void turnLeftNB(double angle, double radius, double tracklength);
@@ -310,8 +307,27 @@ public:
 
 #endif // TODO
 
-private:
+protected:
     Linkbot *_l;
+};
+
+class CLinkbotI : public CLinkbot {
+public:
+    explicit CLinkbotI(const std::string& serialId = "LOCL");
+    ~CLinkbotI();
+
+    void driveAngle(double angle);
+    void driveAngleNB(double angle);
+    void driveBackward(double angle);
+    void driveBackwardNB(double angle);
+    void driveDistance(double distance, double radius);
+    void driveDistanceNB(double distance, double radius);
+    void driveForeverNB();
+    void driveForward(double angle);
+    void driveForwardNB(double angle);
+    void driveTime(double time);
+    void driveTimeNB(double time);
+
 };
 
 } // barobo

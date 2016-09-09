@@ -19,8 +19,13 @@
 
 #include <iostream>
 
-int main() {
-    auto linkbot = barobo::CLinkbot("ZRG6");
+int main(int argc, char **argv) {
+    if (argc < 2) {
+        printf("Usage: %s <serial-id>\n", argv[0]);
+        return 1;
+    }
+    
+    auto linkbot = barobo::CLinkbot(argv[1]);
 
     // Get the accelerometer data
     double x, y, z;
@@ -69,6 +74,22 @@ int main() {
     // Get joint speed ratios
     linkbot.getJointSpeedRatios(x, y, z);
     std::cout << "Joint speed ratios: " << x << " " << y << " " <<z << std::endl;
+
+    // Get the LED colors
+    int r, g, b;
+    linkbot.getLEDColorRGB(r, g, b);
+    std::cout << "Led colors: " << r << " " << g << " " << b << std::endl;
+
+    // Beep for 1 second
+    std::cout << "Beeping for one second..." << std::endl;
+    linkbot.setBuzzerFrequency(440, 1);
+
+    // Scale the frequency from 220 to 440
+    std::cout << "Slurring buzzer from 220 Hz to 440 Hz..." << std::endl;
+    for(int i = 220; i < 440; i+=10) {
+        linkbot.setBuzzerFrequencyOn(i);
+    }
+    linkbot.setBuzzerFrequencyOff();
 
     return 0;
 }

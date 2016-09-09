@@ -17,6 +17,7 @@
 
 #include <linkbot/linkbot.hpp>
 
+#include <algorithm>
 #include <thread>
 
 #define LINKBOT_MAX_SPEED 200
@@ -27,7 +28,9 @@ using std::chrono::seconds;
 using std::chrono::milliseconds;
 
 CLinkbot::CLinkbot(const std::string& serialId) {
-    _l = new Linkbot(serialId);
+    auto _id = serialId;
+    std::transform(_id.begin(), _id.end(), _id.begin(), ::toupper);
+    _l = new Linkbot(_id);
 }
 
 CLinkbot::~CLinkbot() {
@@ -133,6 +136,18 @@ void CLinkbot::setMotorPowers(double p1, double p2, double p3) {
     _l->motorPower(7, p1*255, p2*255, p3*255);
 }
 
+void CLinkbot::resetToZero() {
+    _l->resetEncoderRevs();
+    moveTo(0, 0, 0);
+}
+
+void CLinkbot::resetToZeroNB() {
+    _l->resetEncoderRevs();
+    moveToNB(0, 0, 0);
+}
+
+// MOVEMENT
+
 void CLinkbot::move(double j1, double j2, double j3) {
     moveNB(j1, j2, j3);
     moveWait();
@@ -144,4 +159,30 @@ void CLinkbot::moveNB(double j1, double j2, double j3) {
 
 void CLinkbot::moveWait(int mask) {
     _l->moveWait(mask);
+}
+
+void CLinkbot::moveJoint(LinkbotJoint id, double angle) {
+    moveJointNB(id, angle);
+    moveJointWait(id);
+}
+
+void CLinkbot::moveJointNB(LinkbotJoint id, double angle) {
+    _l->move(1<<id, angle, angle, angle);
+}
+
+void CLinkbot::moveJointWait(LinkbotJoint id) {
+    _l->moveWait(1<<id);
+}
+
+void CLinkbot::moveTo(double angle1, double angle2, double angle3) {
+    moveToNB(angle1, angle2, angle3);
+    moveWait(7);
+}
+
+void CLinkbot::moveToNB(double angle1, double angle2, double angle3) {
+    _l->moveTo(7, angle1, angle2, angle3);
+}
+
+void CLinkbot::stop(int mask) {
+    _l->stop(mask);
 }

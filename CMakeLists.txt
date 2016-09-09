@@ -49,6 +49,7 @@ set(sources
     src/linkbot.cpp
     src/linkbot.c.cpp
     src/clinkbot.cpp
+    src/clinkboti.cpp
 )
 
 add_library(linkbot ${sources})
