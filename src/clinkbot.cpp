@@ -186,3 +186,7 @@ void CLinkbot::moveToNB(double angle1, double angle2, double angle3) {
 void CLinkbot::stop(int mask) {
     _l->stop(mask);
 }
+
+void CLinkbot::delaySeconds(double seconds) {
+    sleep_for(milliseconds(int(seconds*1000)));
+}

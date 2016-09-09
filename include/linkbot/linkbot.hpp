@@ -255,8 +255,11 @@ public:
     void stop(int mask = 0x07);
 #if 0
     void stopOneJoint(LinkbotJoint id);
-
+#endif
     /* MISC */
+    void delaySeconds(double seconds);
+
+#if 0
     /*
     void enableButtonCallback(void* userdata, void (*buttonCallback)(void* data, int button, int buttonDown));
     void disableButtonCallback();
