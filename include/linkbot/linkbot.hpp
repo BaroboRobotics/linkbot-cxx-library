@@ -20,6 +20,7 @@
 
 #include <linkbot/linkbot.h>
 
+#include <map>
 #include <string>
 #include <vector>
 #include <stdint.h>
@@ -306,8 +307,47 @@ public:
 
 #endif // TODO
 
+    std::string _serialId() { return mSerialId; }
+
 protected:
     Linkbot *_l;
+    std::string mSerialId;
+};
+
+class CLinkbotGroup {
+public:
+    explicit CLinkbotGroup();
+    ~CLinkbotGroup();
+
+    void addRobots(CLinkbot& robot);
+
+    // SETTERS 
+    void setBuzzerFrequencyOn(int frequency);
+    void setBuzzerFrequencyOff();
+    void setJointSpeed(LinkbotJoint id, double speed);
+    void setJointSpeeds(double speed1, double speed2, double speed3);
+    void setJointSpeedRatio(LinkbotJoint id, double ratio);
+    void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
+    void setJointPower(LinkbotJoint id, double power);
+    void setLEDColorRGB(int r, int g, int b);
+    void setMotorPowers(double p1, double p2, double p3);
+    void setSpeed(double speed, double radius);
+
+    // MOVEMENT
+    void move(double j1, double j2, double j3);
+    void moveNB(double j1, double j2, double j3);
+    void moveWait(int mask=0x07);
+    void moveJoint(LinkbotJoint id, double angle);
+    void moveJointNB(LinkbotJoint id, double angle);
+    void moveJointWait(LinkbotJoint id);
+    void moveTo(double angle1, double angle2, double angle3);
+    void moveToNB(double angle1, double angle2, double angle3);
+    void resetToZero();
+    void resetToZeroNB();
+    void stop(int mask = 0x07);
+
+private:
+    std::map<std::string, CLinkbot&> mRobots;
 };
 
 class CLinkbotI : public CLinkbot {

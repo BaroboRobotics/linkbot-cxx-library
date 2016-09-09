@@ -31,6 +31,7 @@ CLinkbot::CLinkbot(const std::string& serialId) {
     auto _id = serialId;
     std::transform(_id.begin(), _id.end(), _id.begin(), ::toupper);
     _l = new Linkbot(_id);
+    mSerialId = _id;
 }
 
 CLinkbot::~CLinkbot() {
@@ -136,6 +137,12 @@ void CLinkbot::setMotorPowers(double p1, double p2, double p3) {
     _l->motorPower(7, p1*255, p2*255, p3*255);
 }
 
+void CLinkbot::setSpeed(double speed, double radius) {
+    auto omega = speed / radius;
+    omega *= 180/M_PI;
+    setJointSpeeds(omega, omega, omega);
+}
+
 void CLinkbot::resetToZero() {
     _l->resetEncoderRevs();
     moveTo(0, 0, 0);
@@ -189,4 +196,159 @@ void CLinkbot::stop(int mask) {
 
 void CLinkbot::delaySeconds(double seconds) {
     sleep_for(milliseconds(int(seconds*1000)));
+}
+
+CLinkbotGroup::CLinkbotGroup() {}
+
+CLinkbotGroup::~CLinkbotGroup() {}
+
+void CLinkbotGroup::addRobots(CLinkbot& robot) {
+    mRobots.insert( std::pair<std::string, CLinkbot&>( robot._serialId(), robot ) );
+}
+
+void CLinkbotGroup::setBuzzerFrequencyOn(int frequency) {
+    for ( auto& kv : mRobots ) {
+        kv.second.setBuzzerFrequencyOn(frequency);
+    }
+}
+
+void CLinkbotGroup::setBuzzerFrequencyOff() {
+    for ( auto& kv : mRobots ) {
+        kv.second.setBuzzerFrequencyOff();
+    }
+}
+
+void CLinkbotGroup::setJointSpeed(LinkbotJoint id, double speed)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setJointSpeed(id, speed);
+    }
+}
+
+void CLinkbotGroup::setJointSpeeds(double speed1, double speed2, double speed3)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setJointSpeeds(speed1, speed2, speed3);
+    }
+}
+
+void CLinkbotGroup::setJointSpeedRatio(LinkbotJoint id, double ratio)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setJointSpeedRatio(id, ratio);
+    }
+}
+
+void CLinkbotGroup::setJointSpeedRatios(double ratio1, double ratio2, double ratio3)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setJointSpeedRatios(ratio1, ratio2, ratio3);
+    }
+}
+
+void CLinkbotGroup::setJointPower(LinkbotJoint id, double power)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setJointPower(id, power);
+    }
+}
+
+void CLinkbotGroup::setLEDColorRGB(int r, int g, int b)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setLEDColorRGB(r, g, b);
+    }
+}
+
+void CLinkbotGroup::setMotorPowers(double p1, double p2, double p3)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setMotorPowers(p1, p2, p3);
+    }
+}
+
+void CLinkbotGroup::setSpeed(double speed, double radius)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.setSpeed(speed, radius);
+    }
+}
+
+// Group Movement
+
+void CLinkbotGroup::move(double j1, double j2, double j3)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.moveNB(j1, j2, j3);
+    }
+    for ( auto& kv : mRobots ) {
+        kv.second.moveWait();
+    }
+}
+
+void CLinkbotGroup::moveNB(double j1, double j2, double j3)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.moveNB(j1, j2, j3);
+    }
+}
+
+void CLinkbotGroup::moveWait(int mask)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.moveWait(mask);
+    }
+}
+
+void CLinkbotGroup::moveJoint(LinkbotJoint id, double angle)
+{
+    moveJointNB(id, angle);
+    moveWait(1<<id);
+}
+
+void CLinkbotGroup::moveJointNB(LinkbotJoint id, double angle)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.moveJointNB(id, angle);
+    }
+}
+
+void CLinkbotGroup::moveJointWait(LinkbotJoint id)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.moveJointWait(id);
+    }
+}
+
+void CLinkbotGroup::moveTo(double angle1, double angle2, double angle3)
+{
+    moveToNB(angle1, angle2, angle3);
+    moveWait();
+}
+
+void CLinkbotGroup::moveToNB(double angle1, double angle2, double angle3)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.moveToNB(angle1, angle2, angle3);
+    }
+}
+
+void CLinkbotGroup::resetToZero()
+{
+    resetToZeroNB();
+    moveWait();
+}
+
+void CLinkbotGroup::resetToZeroNB()
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.resetToZeroNB();
+    }
+}
+
+void CLinkbotGroup::stop(int mask)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second.stop(mask);
+    }
 }
