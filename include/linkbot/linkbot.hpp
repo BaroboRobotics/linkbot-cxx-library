@@ -255,10 +255,6 @@ public:
     void stop(int mask = 0x07);
 #if 0
     void stopOneJoint(LinkbotJoint id);
-    void turnLeft(double angle, double radius, double tracklength);
-    void turnLeftNB(double angle, double radius, double tracklength);
-    void turnRight(double angle, double radius, double tracklength);
-    void turnRightNB(double angle, double radius, double tracklength);
 
     /* MISC */
     /*
@@ -327,6 +323,10 @@ public:
     void driveForwardNB(double angle);
     void driveTime(double time);
     void driveTimeNB(double time);
+    void turnLeft(double angle, double radius, double tracklength);
+    void turnLeftNB(double angle, double radius, double tracklength);
+    void turnRight(double angle, double radius, double tracklength);
+    void turnRightNB(double angle, double radius, double tracklength);
 
 };
 

@@ -87,3 +87,24 @@ void CLinkbotI::driveTimeNB(double time) {
         LINKBOT_JOINT_STATE_MOVING, -1, time, LINKBOT_JOINT_STATE_HOLD);
 }
 
+void CLinkbotI::turnLeft(double angle, double radius, double tracklength)
+{
+    turnLeftNB(angle, radius, tracklength);
+    moveWait(0x05);
+}
+
+void CLinkbotI::turnLeftNB(double angle, double radius, double tracklength) {
+    auto theta = angle*M_PI/180.0;
+    auto phi = tracklength * theta / (2*radius);
+    phi *= 180/M_PI;
+    move(-phi, 0, phi);
+}
+
+void CLinkbotI::turnRight(double angle, double radius, double tracklength) {
+    turnRightNB(angle, radius, tracklength);
+    moveWait(0x05);
+}
+
+void CLinkbotI::turnRightNB(double angle, double radius, double tracklength) {
+    turnLeftNB(-angle, radius, tracklength);
+}
