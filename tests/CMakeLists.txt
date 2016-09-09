@@ -13,6 +13,11 @@ target_link_libraries(testclinkbot linkbot)
 set_target_properties(testclinkbot PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 add_test(NAME testclinkbot COMMAND testclinkbot)
 
+add_executable(testclinkboti testclinkboti.cpp)
+target_link_libraries(testclinkboti linkbot)
+set_target_properties(testclinkboti PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+add_test(NAME testclinkboti COMMAND testclinkboti)
+
 #add_executable(speeddial speeddial.cpp)
 #target_link_libraries(speeddial linkbot)
 #add_test(NAME speeddial COMMAND speeddial)

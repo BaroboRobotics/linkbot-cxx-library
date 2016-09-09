@@ -16,13 +16,21 @@
 // along with liblinkbot.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linkbot/linkbot.hpp>
+#include <linkbot/error.hpp>
 #include <math.h>
 
 using namespace barobo;
 
 CLinkbotI::CLinkbotI(const std::string& serialId)
 : CLinkbot(serialId)
-{ }
+{ 
+    // Make sure we are a Linkbot-I 
+    LinkbotFormFactor form;
+    getFormFactor(form);
+    if ( form != LINKBOT_FORM_FACTOR_I ) {
+        throw Error("Connect Linkbot is not a Linkbot-I.");
+    }
+}
 
 CLinkbotI::~CLinkbotI() { }
 
