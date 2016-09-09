@@ -97,7 +97,7 @@ void CLinkbotI::turnLeftNB(double angle, double radius, double tracklength) {
     auto theta = angle*M_PI/180.0;
     auto phi = tracklength * theta / (2*radius);
     phi *= 180/M_PI;
-    move(-phi, 0, phi);
+    moveNB(-phi, 0, phi);
 }
 
 void CLinkbotI::turnRight(double angle, double radius, double tracklength) {

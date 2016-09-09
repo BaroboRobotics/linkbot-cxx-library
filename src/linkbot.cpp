@@ -972,6 +972,10 @@ void Linkbot::moveTo (int mask, double a0, double a1, double a2) {
 }
 
 void Linkbot::moveWait(int mask) {
+    mask &= 0x07;
+    if(! (m->isMoving & mask) ) {
+        return;
+    }
     m->moveWaitMask = mask;
     m->moveWaitPromise = std::promise<void>{};
     auto future = m->moveWaitPromise.get_future();
