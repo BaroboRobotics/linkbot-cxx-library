@@ -30,8 +30,11 @@ int main(int argc, char **argv) {
 
     for(auto i = 1; i < argc; i++) {
         linkbots.emplace_back(argv[i]);
-        group.addRobots(linkbots.back());
     }
+
+    for(auto &linkbot: linkbots) {
+        group.addRobots(linkbot);
+    }    
 
     // Scale the frequency from 220 to 440
     std::cout << "Slurring buzzer from 220 Hz to 440 Hz..." << std::endl;
