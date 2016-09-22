@@ -50,6 +50,7 @@ set(sources
     src/linkbot.c.cpp
     src/clinkbot.cpp
     src/clinkboti.cpp
+    src/clinkbotl.cpp
 )
 
 add_library(linkbot ${sources})

@@ -28,7 +28,7 @@ CLinkbotI::CLinkbotI(const std::string& serialId)
     LinkbotFormFactor form;
     getFormFactor(form);
     if ( form != LINKBOT_FORM_FACTOR_I ) {
-        throw Error("Connect Linkbot is not a Linkbot-I.");
+        throw Error("Connected Linkbot is not a Linkbot-I.");
     }
 }
 

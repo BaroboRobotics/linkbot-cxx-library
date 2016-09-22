@@ -373,6 +373,12 @@ public:
 
 };
 
+class CLinkbotL: public CLinkbot {
+public:
+    explicit CLinkbotL(const std::string& serialId = "LOCL");
+    ~CLinkbotL();
+};
+
 } // barobo
 
 #endif
