@@ -347,7 +347,7 @@ public:
     void stop(int mask = 0x07);
 
 private:
-    std::map<std::string, CLinkbot&> mRobots;
+    std::map<std::string, CLinkbot*> mRobots;
 };
 
 class CLinkbotI : public CLinkbot {
