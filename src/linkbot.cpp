@@ -330,6 +330,7 @@ Linkbot::Linkbot (const std::string& id) try
     LinkbotFormFactor form;
     getFormFactor(form);
     m->formFactor = form;
+    initJointEventCallback();
 }
 catch (std::exception& e) {
     throw Error(id + ": " + e.what());
