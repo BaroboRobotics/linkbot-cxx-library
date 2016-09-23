@@ -202,7 +202,7 @@ CLinkbotGroup::CLinkbotGroup() {}
 
 CLinkbotGroup::~CLinkbotGroup() {}
 
-void CLinkbotGroup::addRobots(CLinkbot& robot) {
+void CLinkbotGroup::addRobot(CLinkbot& robot) {
     mRobots.insert( std::pair<std::string, CLinkbot*>( robot._serialId(), &robot ) );
 }
 

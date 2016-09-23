@@ -319,7 +319,7 @@ public:
     explicit CLinkbotGroup();
     ~CLinkbotGroup();
 
-    void addRobots(CLinkbot& robot);
+    void addRobot(CLinkbot& robot);
 
     // SETTERS 
     void setBuzzerFrequencyOn(int frequency);

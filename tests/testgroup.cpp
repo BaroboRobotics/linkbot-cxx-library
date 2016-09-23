@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     }
 
     for(auto linkbot: linkbots) {
-        group.addRobots(*linkbot);
+        group.addRobot(*linkbot);
     }    
 
     // Scale the frequency from 220 to 440
