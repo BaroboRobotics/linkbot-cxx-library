@@ -26,14 +26,15 @@ int main(int argc, char **argv) {
     }
 
     auto group = barobo::CLinkbotGroup{};
-    std::vector<barobo::CLinkbot> linkbots;
+  
+    std::vector<barobo::CLinkbot*> linkbots;
 
     for(auto i = 1; i < argc; i++) {
-        linkbots.emplace_back(argv[i]);
+        linkbots.emplace_back(new barobo::CLinkbot(argv[i]));
     }
 
-    for(auto &linkbot: linkbots) {
-        group.addRobots(linkbot);
+    for(auto linkbot: linkbots) {
+        group.addRobots(*linkbot);
     }    
 
     // Scale the frequency from 220 to 440
