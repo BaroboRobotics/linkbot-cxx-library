@@ -91,5 +91,20 @@ int main(int argc, char **argv) {
     }
     linkbot.setBuzzerFrequencyOff();
 
+    // Test setMovementState
+    std::cout << "Moving motors forward for 3 seconds..." << std::endl;
+    linkbot.setMovementStateNB(
+        LINKBOT_FORWARD,
+        LINKBOT_FORWARD,
+        LINKBOT_FORWARD);
+    linkbot.delaySeconds(3);
+    std::cout << "Moving motors backward for 3 seconds..." << std::endl;
+    linkbot.setMovementStateNB(
+        LINKBOT_BACKWARD,
+        LINKBOT_BACKWARD,
+        LINKBOT_BACKWARD);
+    linkbot.delaySeconds(3);
+    linkbot.stop();
+
     return 0;
 }

@@ -137,6 +137,36 @@ void CLinkbot::setMotorPowers(double p1, double p2, double p3) {
     _l->motorPower(7, p1*255, p2*255, p3*255);
 }
 
+void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
+            LinkbotDirection dir2,
+            LinkbotDirection dir3)
+{
+    LinkbotJointState states[3];
+    double c[3];
+    std::vector<LinkbotDirection> dirs = {dir1, dir2, dir3};
+    for(auto i = 0; i < 3; i++) {
+        switch(dirs[i]) { 
+            case LINKBOT_BACKWARD:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = -1;
+                break;
+            case LINKBOT_NEUTRAL:
+                states[i] = LINKBOT_JOINT_STATE_COAST;
+                c[0] = 0;
+                break;
+            case LINKBOT_FORWARD:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = 1;
+                break;
+        }
+    }   
+    _l->setJointStates(0x07, 
+        states[0], c[0],
+        states[1], c[1],
+        states[2], c[2]);
+}
+
+
 void CLinkbot::setSpeed(double speed, double radius) {
     auto omega = speed / radius;
     omega *= 180/M_PI;
@@ -192,6 +222,18 @@ void CLinkbot::moveToNB(double angle1, double angle2, double angle3) {
 
 void CLinkbot::stop(int mask) {
     _l->stop(mask);
+}
+
+void CLinkbot::setButtonEventCallback( LinkbotButtonEventCallback cb, void* userData) {
+    _l->setButtonEventCallback(cb, userData);
+}
+
+void CLinkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb, double granularity, void* userData) {
+    _l->setEncoderEventCallback(cb, granularity, userData);
+}
+
+void CLinkbot::setAccelerometerEventCallback (LinkbotAccelerometerEventCallback cb, void* userData) {
+    _l->setAccelerometerEventCallback(cb, userData);
 }
 
 void CLinkbot::delaySeconds(double seconds) {

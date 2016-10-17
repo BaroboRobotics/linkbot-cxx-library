@@ -181,10 +181,10 @@ public:
     void setLEDColorRGB(int r, int g, int b);
     //void setLEDColor(char *color);
     void setMotorPowers(double p1, double p2, double p3);
+    void setMovementStateNB( LinkbotDirection dir1,
+            LinkbotDirection dir2,
+            LinkbotDirection dir3);
 #if 0 // TODO
-    void setMovementStateNB( robotJointState_t dir1,
-            robotJointState_t dir2,
-            robotJointState_t dir3);
     void setMovementStateTime( robotJointState_t dir1,
             robotJointState_t dir2,
             robotJointState_t dir3,
@@ -257,6 +257,14 @@ public:
 #if 0
     void stopOneJoint(LinkbotJoint id);
 #endif
+
+    /* CALLBACKS */
+    // Passing a null pointer as the first parameter of those three functions
+    // will disable its respective events.
+    void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
+    void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
+    void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
+
     /* MISC */
     void delaySeconds(double seconds);
 
