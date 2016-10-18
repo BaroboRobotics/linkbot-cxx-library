@@ -146,7 +146,7 @@ void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
     std::vector<LinkbotDirection> dirs = {dir1, dir2, dir3};
     for(auto i = 0; i < 3; i++) {
         switch(dirs[i]) { 
-            case LINKBOT_BACKWARD:
+            case LINKBOT_NEGATIVE:
                 states[i] = LINKBOT_JOINT_STATE_MOVING;
                 c[i] = -1;
                 break;
@@ -154,9 +154,23 @@ void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
                 states[i] = LINKBOT_JOINT_STATE_COAST;
                 c[i] = 0;
                 break;
+            case LINKBOT_POSITIVE:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = 1;
+                break;
             case LINKBOT_FORWARD:
                 states[i] = LINKBOT_JOINT_STATE_MOVING;
                 c[i] = 1;
+                if(i == 2) {
+                    c[i] *= -1;
+                }
+                break;
+            case LINKBOT_BACKWARD:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = -1;
+                if(i == 2) {
+                    c[i] *= -1;
+                }
                 break;
         }
     }   

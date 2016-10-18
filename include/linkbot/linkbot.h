@@ -43,7 +43,9 @@ enum LinkbotButton {
 enum LinkbotDirection {
     LINKBOT_BACKWARD=-1,
     LINKBOT_NEUTRAL=0,
-    LINKBOT_FORWARD=1
+    LINKBOT_FORWARD=1,
+    LINKBOT_POSITIVE,
+    LINKBOT_NEGATIVE
 };
 
 enum LinkbotFormFactor {
