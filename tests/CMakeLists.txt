@@ -23,6 +23,11 @@ target_link_libraries(testcallbacks linkbot)
 set_target_properties(testcallbacks PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 add_test(NAME testcallbacks COMMAND testcallbacks)
 
+add_executable(testcallbacks2 testcallbacks2.cpp)
+target_link_libraries(testcallbacks2 linkbot)
+set_target_properties(testcallbacks2 PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+add_test(NAME testcallbacks2 COMMAND testcallbacks2)
+
 add_executable(testgroup testgroup.cpp)
 target_link_libraries(testgroup linkbot)
 set_target_properties(testgroup PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)

@@ -1041,6 +1041,28 @@ void Linkbot::setAccelerometerEventCallback (LinkbotAccelerometerEventCallback c
     }
 }
 
+void Linkbot::setAccelerometerEventCallback (std::function<void(double, double, double, int)> cb) {
+    const bool enable = !!cb;
+    auto granularity = float(enable ? 0.05 : 0);
+
+    try {
+        asyncFire(m->robot, MethodIn::enableAccelerometerEvent {
+            enable, granularity
+        }, requestTimeout(), use_future).get();
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+
+    if (enable) {
+        m->accelerometerEventCallback = cb;
+    }
+    else {
+        m->accelerometerEventCallback = nullptr;
+    }
+}
+
+
 void Linkbot::setButtonEventCallback (LinkbotButtonEventCallback cb, void* userData) {
     const bool enable = !!cb;
 
@@ -1053,6 +1075,24 @@ void Linkbot::setButtonEventCallback (LinkbotButtonEventCallback cb, void* userD
 
     if (enable) {
         m->buttonEventCallback = std::bind(cb, _1, _2, _3, userData);
+    }
+    else {
+        m->buttonEventCallback = nullptr;
+    }
+}
+
+void Linkbot::setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)> cb) {
+    const bool enable = !!cb;
+
+    try {
+        asyncFire(m->robot, MethodIn::enableButtonEvent{enable}, requestTimeout(), use_future).get();
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+
+    if (enable) {
+        m->buttonEventCallback = cb;
     }
     else {
         m->buttonEventCallback = nullptr;
@@ -1078,6 +1118,30 @@ void Linkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb,
 
     if (enable) {
         m->encoderEventCallback = std::bind(cb, _1, _2, _3, userData);
+    }
+    else {
+        m->encoderEventCallback = nullptr;
+    }
+}
+
+void Linkbot::setEncoderEventCallback (std::function<void(int, double, int)> cb, double granularity)
+{
+    const bool enable = !!cb;
+    granularity = degToRad(granularity);
+
+    try {
+        asyncFire(m->robot, MethodIn::enableEncoderEvent {
+            true, { enable, float(granularity) },
+            true, { enable, float(granularity) },
+            true, { enable, float(granularity) }
+        }, requestTimeout(), use_future).get();
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+
+    if (enable) {
+        m->encoderEventCallback = cb;
     }
     else {
         m->encoderEventCallback = nullptr;

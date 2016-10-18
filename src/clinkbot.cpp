@@ -242,12 +242,24 @@ void CLinkbot::setButtonEventCallback( LinkbotButtonEventCallback cb, void* user
     _l->setButtonEventCallback(cb, userData);
 }
 
+void CLinkbot::setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)> cb) {
+    _l->setButtonEventCallback(cb);
+}
+
 void CLinkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb, double granularity, void* userData) {
     _l->setEncoderEventCallback(cb, granularity, userData);
 }
 
+void CLinkbot::setEncoderEventCallback (std::function<void(int, double, int)> cb, double granularity) {
+    _l->setEncoderEventCallback(cb, granularity);
+}
+
 void CLinkbot::setAccelerometerEventCallback (LinkbotAccelerometerEventCallback cb, void* userData) {
     _l->setAccelerometerEventCallback(cb, userData);
+}
+
+void CLinkbot::setAccelerometerEventCallback (std::function<void(double, double, double, int)> cb) {
+    _l->setAccelerometerEventCallback(cb);
 }
 
 void CLinkbot::delaySeconds(double seconds) {

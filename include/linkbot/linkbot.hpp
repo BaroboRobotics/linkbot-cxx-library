@@ -20,6 +20,7 @@
 
 #include <linkbot/linkbot.h>
 
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -116,8 +117,17 @@ public:
     // Passing a null pointer as the first parameter of those three functions
     // will disable its respective events.
     void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
+    // cb function params: button, button state, timestamp(millis)
+    void setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)>);
+
     void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
+    // cb function params: joint number, angle, timestamp
+    void setEncoderEventCallback (std::function<void(int, double, int)>, double granularity);
+
     void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
+    // cb function params: x, y, z, timestamp
+    void setAccelerometerEventCallback (std::function<void(double, double, double, int)>);
+
     void setConnectionTerminatedCallback (LinkbotConnectionTerminatedCallback, void* userData);
 
     /* MISC */
@@ -262,8 +272,13 @@ public:
     // Passing a null pointer as the first parameter of those three functions
     // will disable its respective events.
     void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
+    void setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)>);
+
     void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
+    void setEncoderEventCallback (std::function<void(int, double, int)>, double granularity);
+
     void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
+    void setAccelerometerEventCallback (std::function<void(double, double, double, int)>);
 
     /* MISC */
     void delaySeconds(double seconds);
