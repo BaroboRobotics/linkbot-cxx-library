@@ -152,7 +152,7 @@ void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
                 break;
             case LINKBOT_NEUTRAL:
                 states[i] = LINKBOT_JOINT_STATE_COAST;
-                c[0] = 0;
+                c[i] = 0;
                 break;
             case LINKBOT_FORWARD:
                 states[i] = LINKBOT_JOINT_STATE_MOVING;
