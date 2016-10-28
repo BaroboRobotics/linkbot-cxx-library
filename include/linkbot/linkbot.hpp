@@ -21,7 +21,9 @@
 #include <linkbot/linkbot.h>
 
 #include <functional>
+#include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <stdint.h>
@@ -401,6 +403,58 @@ public:
     explicit CLinkbotL(const std::string& serialId = "LOCL");
     ~CLinkbotL();
 };
+
+template <typename T>
+std::vector<std::tuple<T, T>> pair(T xs, T ys) {
+    return {std::make_tuple(xs, ys)};
+}
+
+template <typename T, typename... Args>
+std::vector<std::tuple<T, T>> pair(T xs, T ys, Args... args) {
+    auto base = pair(xs, ys);
+    auto tail = pair(args...);
+    base.insert(base.end(), tail.begin(), tail.end());
+    return base;
+}
+
+template <typename T>
+void scatterPlot(T xs, T ys) {
+}
+
+template <typename T, typename... Args>
+void scatterPlot(T xs, T ys, Args... args) {
+    auto data = pair(xs, ys, args...);
+
+    std::ostringstream buffer;
+    buffer << '[';
+    for(auto i = data.begin(); i!= data.end(); ++i) {
+        if ( i != data.begin() ) {
+            buffer << ",\n";
+        }
+        buffer << "{\n";
+        auto xs = std::get<0>(*i);
+        auto ys = std::get<1>(*i);
+        buffer << "  x: [";
+        for (auto j = xs.begin(); j != xs.end(); ++j) {
+            if( j != xs.begin() ) {
+                buffer << ", ";
+            }
+            buffer << *j;
+        }
+        buffer << "],\n";
+        buffer << "  y: [";
+        for (auto j = ys.begin(); j != ys.end(); ++j) {
+            if ( j != ys.begin() ) {
+                buffer << ", ";
+            }
+            buffer << *j;
+        }
+        buffer << "],\n";
+        buffer << "  type: 'scatter'\n}";
+    }
+    buffer << "]\n";
+    std::cout << buffer.str();
+}
 
 } // barobo
 

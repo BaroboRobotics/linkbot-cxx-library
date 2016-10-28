@@ -3,6 +3,11 @@ target_link_libraries(lavalamp linkbot)
 set_target_properties(lavalamp PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 add_test(NAME lavalamp COMMAND lavalamp)
 
+add_executable(plotting plotting.cpp)
+target_link_libraries(plotting linkbot)
+set_target_properties(plotting PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+add_test(NAME plotting COMMAND plotting)
+
 add_executable(testmovement testmovement.cpp)
 target_link_libraries(testmovement linkbot)
 set_target_properties(testmovement PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
