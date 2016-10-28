@@ -419,6 +419,28 @@ std::vector<std::tuple<T, T>> pair(T xs, T ys, Args... args) {
 
 template <typename T>
 void scatterPlot(T xs, T ys) {
+    std::ostringstream buffer;
+    buffer << '[';
+    buffer << "{\n";
+    buffer << "  x: [";
+    for (auto j = xs.begin(); j != xs.end(); ++j) {
+        if( j != xs.begin() ) {
+            buffer << ", ";
+        }
+        buffer << *j;
+    }
+    buffer << "],\n";
+    buffer << "  y: [";
+    for (auto j = ys.begin(); j != ys.end(); ++j) {
+        if ( j != ys.begin() ) {
+            buffer << ", ";
+        }
+        buffer << *j;
+    }
+    buffer << "],\n";
+    buffer << "  type: 'scatter'\n}";
+    buffer << "]\n";
+    std::cout << buffer.str();
 }
 
 template <typename T, typename... Args>
