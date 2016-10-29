@@ -18,7 +18,16 @@
 #include <linkbot/linkbot.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <thread>
+
+#include <util/asio/iothread.hpp>
+#include <util/asio/ws/acceptor.hpp>
+#include <util/asio/ws/connector.hpp>
+
+#include <boost/asio/use_future.hpp>
+
+#include "message.pb.h"
 
 #define LINKBOT_MAX_SPEED 200
 
@@ -419,4 +428,49 @@ void CLinkbotGroup::stop(int mask)
     for ( auto& kv : mRobots ) {
         kv.second->stop(mask);
     }
+}
+
+void sendToPrex(std::string json) {
+    util::asio::IoThread ioThread;
+    auto host = "localhost";
+    auto service = std::getenv("PREX_IPC_PORT");
+
+    /* Pack the json string into a protobuf message */
+    PrexMessage msg;
+    Image image;
+    image.set_payload(json);
+    image.set_format("JSON");
+    std::ostringstream image_buffer;
+    image.SerializeToOstream(&image_buffer);
+    msg.set_payload(buffer.str());
+    msg.set_type(IMAGE);
+    std::ostringstream msg_buffer;
+    msg.SerializeToOstream(msg_buffer);
+
+    auto connector = ws::Connector{ioThread.context()};
+    // a `ws::Connector` wraps a `websocketpp::client`
+    auto clientMq = ws::Connector::MessageQueue{ioThread.context()};
+    // a `ws::Connector::MessageQueue` wraps a `websocketpp::client::connection_ptr`
+
+    auto use_future = boost::asio::use_future_t<std::allocator<char>>{};
+    // We need this special use_future to work around an Asio bug on gcc 5+.
+
+    connector.asyncConnect(clientMq, host, service, use_future).get();
+
+    clientMq.asyncSend(msg_buffer.str(), use_future).get();
+
+    std::array<uint8_t, 1024> clientBuffer;
+    auto nRxBytes = clientMq.asyncReceive(boost::asio::buffer(clientBuffer), use_future).get();
+
+    util::log::Logger lg;
+    BOOST_LOG(lg) << "client received "
+        << std::string(clientBuffer.data(), clientBuffer.data() + nRxBytes);
+
+    auto ec = error_code{};
+    clientMq.close(ec);
+    if (ec) { BOOST_LOG(lg) << "client message queue close: " << ec.message(); }
+    acceptor.close(ec);
+    if (ec) { BOOST_LOG(lg) << "acceptor close: " << ec.message(); }
+    connector.close(ec);
+    if (ec) { BOOST_LOG(lg) << "connector close: " << ec.message(); }
 }

@@ -417,6 +417,8 @@ std::vector<std::tuple<T, T>> pair(T xs, T ys, Args... args) {
     return base;
 }
 
+void sendToPrex(std::string json);
+
 template <typename T>
 void scatterPlot(T xs, T ys) {
     std::ostringstream buffer;
@@ -441,6 +443,7 @@ void scatterPlot(T xs, T ys) {
     buffer << "  type: 'scatter'\n}";
     buffer << "]\n";
     std::cout << buffer.str();
+    sendToPrex(buffer.str());
 }
 
 template <typename T, typename... Args>
@@ -476,6 +479,7 @@ void scatterPlot(T xs, T ys, Args... args) {
     }
     buffer << "]\n";
     std::cout << buffer.str();
+    sendToPrex(buffer.str());
 }
 
 } // barobo
