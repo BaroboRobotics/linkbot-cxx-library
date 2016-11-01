@@ -430,7 +430,7 @@ void CLinkbotGroup::stop(int mask)
     }
 }
 
-void sendToPrex(std::string json) {
+void barobo::sendToPrex(std::string json) {
     util::asio::IoThread ioThread;
     auto host = "localhost";
     auto service = std::getenv("PREX_IPC_PORT");
@@ -442,14 +442,14 @@ void sendToPrex(std::string json) {
     image.set_format("JSON");
     std::ostringstream image_buffer;
     image.SerializeToOstream(&image_buffer);
-    msg.set_payload(buffer.str());
-    msg.set_type(IMAGE);
+    msg.set_payload(image_buffer.str());
+    msg.set_type(PrexMessage_MessageType_IMAGE);
     std::ostringstream msg_buffer;
-    msg.SerializeToOstream(msg_buffer);
+    msg.SerializeToOstream(&msg_buffer);
 
-    auto connector = ws::Connector{ioThread.context()};
+    auto connector = util::asio::ws::Connector{ioThread.context()};
     // a `ws::Connector` wraps a `websocketpp::client`
-    auto clientMq = ws::Connector::MessageQueue{ioThread.context()};
+    auto clientMq = util::asio::ws::Connector::MessageQueue{ioThread.context()};
     // a `ws::Connector::MessageQueue` wraps a `websocketpp::client::connection_ptr`
 
     auto use_future = boost::asio::use_future_t<std::allocator<char>>{};
@@ -457,7 +457,7 @@ void sendToPrex(std::string json) {
 
     connector.asyncConnect(clientMq, host, service, use_future).get();
 
-    clientMq.asyncSend(msg_buffer.str(), use_future).get();
+    clientMq.asyncSend(boost::asio::buffer(msg_buffer.str()), use_future).get();
 
     std::array<uint8_t, 1024> clientBuffer;
     auto nRxBytes = clientMq.asyncReceive(boost::asio::buffer(clientBuffer), use_future).get();
@@ -466,11 +466,9 @@ void sendToPrex(std::string json) {
     BOOST_LOG(lg) << "client received "
         << std::string(clientBuffer.data(), clientBuffer.data() + nRxBytes);
 
-    auto ec = error_code{};
+    auto ec = boost::system::error_code{};
     clientMq.close(ec);
     if (ec) { BOOST_LOG(lg) << "client message queue close: " << ec.message(); }
-    acceptor.close(ec);
-    if (ec) { BOOST_LOG(lg) << "acceptor close: " << ec.message(); }
     connector.close(ec);
     if (ec) { BOOST_LOG(lg) << "connector close: " << ec.message(); }
 }
