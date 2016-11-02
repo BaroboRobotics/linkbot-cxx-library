@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     
-    auto linkbot = barobo::CLinkbotI(argv[1]);
+    barobo::CLinkbotI linkbot {argv[1]};
 
     std::cout << "Drive Angle: 90 degrees..." << std::endl;
     linkbot.driveAngle(90);

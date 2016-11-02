@@ -21,10 +21,13 @@
 #include <cstdlib>
 #include <thread>
 
+
 #include <util/asio/iothread.hpp>
 #include <util/asio/ws/acceptor.hpp>
 #include <util/asio/ws/connector.hpp>
+#include <util/global.hpp>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/asio/use_future.hpp>
 
 #include "message.pb.h"
@@ -36,45 +39,39 @@ using std::this_thread::sleep_for;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
 
-CLinkbot::CLinkbot(const std::string& serialId) {
-    auto _id = serialId;
-    std::transform(_id.begin(), _id.end(), _id.begin(), ::toupper);
-    _l = new Linkbot(_id);
-    mSerialId = _id;
-}
-
-CLinkbot::~CLinkbot() {
-    delete _l;
-}
+CLinkbot::CLinkbot(const std::string& serialId) : 
+    _l(boost::to_upper_copy<std::string>(serialId)), 
+    mSerialId(boost::to_upper_copy<std::string>(serialId))  
+{ }
 
 void CLinkbot::getAccelerometerData(double &x, double &y, double &z) {
     int timestamp;
-    _l->getAccelerometer(timestamp, x, y, z);
+    _l.getAccelerometer(timestamp, x, y, z);
 }
 
 void CLinkbot::getBatteryVoltage(double &voltage) {
-    _l->getBatteryVoltage(voltage);
+    _l.getBatteryVoltage(voltage);
 }
 
 void CLinkbot::getFormFactor(LinkbotFormFactor &form) {
-    _l->getFormFactor(form);
+    _l.getFormFactor(form);
 }
 
 void CLinkbot::getJointAngle(LinkbotJoint joint, double &angle) {
     double angles[3];
     int timestamp;
-    _l->getJointAngles(timestamp, angles[0], angles[1], angles[2]);
+    _l.getJointAngles(timestamp, angles[0], angles[1], angles[2]);
     angle = angles[joint];
 }
 
 void CLinkbot::getJointAngles(double &angle1, double &angle2, double &angle3) {
     int timestamp;
-    _l->getJointAngles(timestamp, angle1, angle2, angle3);
+    _l.getJointAngles(timestamp, angle1, angle2, angle3);
 }
 
 void CLinkbot::getJointSpeed(LinkbotJoint id, double &speed) {
     double speeds[3];
-    _l->getJointSpeeds(speeds[0], speeds[1], speeds[2]);
+    _l.getJointSpeeds(speeds[0], speeds[1], speeds[2]);
     speed = speeds[id];
 }
 
@@ -85,7 +82,7 @@ void CLinkbot::getJointSpeedRatio(LinkbotJoint id, double &ratio) {
 }
 
 void CLinkbot::getJointSpeeds(double &speed1, double &speed2, double &speed3) {
-    _l->getJointSpeeds(speed1, speed2, speed3);
+    _l.getJointSpeeds(speed1, speed2, speed3);
 }
 
 void CLinkbot::getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio3) {
@@ -96,31 +93,31 @@ void CLinkbot::getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio
 }
 
 void CLinkbot::getLEDColorRGB(int &r, int &g, int &b) {
-    _l->getLedColor(r, g, b);
+    _l.getLedColor(r, g, b);
 }
 
 // SETTERS
 
 void CLinkbot::setBuzzerFrequency(int frequency, double time) {
-    _l->setBuzzerFrequency(frequency);
+    _l.setBuzzerFrequency(frequency);
     sleep_for(milliseconds(int(time*1000)));
-    _l->setBuzzerFrequency(0);
+    _l.setBuzzerFrequency(0);
 }
 
 void CLinkbot::setBuzzerFrequencyOn(int frequency) {
-    _l->setBuzzerFrequency(frequency);
+    _l.setBuzzerFrequency(frequency);
 }
 
 void CLinkbot::setBuzzerFrequencyOff() {
-    _l->setBuzzerFrequency(0);
+    _l.setBuzzerFrequency(0);
 }
 
 void CLinkbot::setJointSpeed(LinkbotJoint id, double speed) {
-    _l->setJointSpeeds(1<<id, speed, speed, speed);
+    _l.setJointSpeeds(1<<id, speed, speed, speed);
 }
 
 void CLinkbot::setJointSpeeds(double speed1, double speed2, double speed3) {
-    _l->setJointSpeeds(7, speed1, speed2, speed3);
+    _l.setJointSpeeds(7, speed1, speed2, speed3);
 }
 
 void CLinkbot::setJointSpeedRatio(LinkbotJoint id, double ratio) {
@@ -135,15 +132,15 @@ void CLinkbot::setJointSpeedRatios(double ratio1, double ratio2, double ratio3) 
 }
 
 void CLinkbot::setJointPower(LinkbotJoint id, double power) {
-    _l->motorPower(1<<id, power*255, power*255, power*255);
+    _l.motorPower(1<<id, power*255, power*255, power*255);
 }
 
 void CLinkbot::setLEDColorRGB(int r, int g, int b) {
-    _l->setLedColor(r, g, b);
+    _l.setLedColor(r, g, b);
 }
 
 void CLinkbot::setMotorPowers(double p1, double p2, double p3) {
-    _l->motorPower(7, p1*255, p2*255, p3*255);
+    _l.motorPower(7, p1*255, p2*255, p3*255);
 }
 
 void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
@@ -183,7 +180,7 @@ void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
                 break;
         }
     }   
-    _l->setJointStates(0x07, 
+    _l.setJointStates(0x07, 
         states[0], c[0],
         states[1], c[1],
         states[2], c[2]);
@@ -197,12 +194,12 @@ void CLinkbot::setSpeed(double speed, double radius) {
 }
 
 void CLinkbot::resetToZero() {
-    _l->resetEncoderRevs();
+    _l.resetEncoderRevs();
     moveTo(0, 0, 0);
 }
 
 void CLinkbot::resetToZeroNB() {
-    _l->resetEncoderRevs();
+    _l.resetEncoderRevs();
     moveToNB(0, 0, 0);
 }
 
@@ -214,11 +211,11 @@ void CLinkbot::move(double j1, double j2, double j3) {
 }
 
 void CLinkbot::moveNB(double j1, double j2, double j3) {
-    _l->move(7, j1, j2, j3);
+    _l.move(7, j1, j2, j3);
 }
 
 void CLinkbot::moveWait(int mask) {
-    _l->moveWait(mask);
+    _l.moveWait(mask);
 }
 
 void CLinkbot::moveJoint(LinkbotJoint id, double angle) {
@@ -227,11 +224,11 @@ void CLinkbot::moveJoint(LinkbotJoint id, double angle) {
 }
 
 void CLinkbot::moveJointNB(LinkbotJoint id, double angle) {
-    _l->move(1<<id, angle, angle, angle);
+    _l.move(1<<id, angle, angle, angle);
 }
 
 void CLinkbot::moveJointWait(LinkbotJoint id) {
-    _l->moveWait(1<<id);
+    _l.moveWait(1<<id);
 }
 
 void CLinkbot::moveTo(double angle1, double angle2, double angle3) {
@@ -240,35 +237,35 @@ void CLinkbot::moveTo(double angle1, double angle2, double angle3) {
 }
 
 void CLinkbot::moveToNB(double angle1, double angle2, double angle3) {
-    _l->moveTo(7, angle1, angle2, angle3);
+    _l.moveTo(7, angle1, angle2, angle3);
 }
 
 void CLinkbot::stop(int mask) {
-    _l->stop(mask);
+    _l.stop(mask);
 }
 
 void CLinkbot::setButtonEventCallback( LinkbotButtonEventCallback cb, void* userData) {
-    _l->setButtonEventCallback(cb, userData);
+    _l.setButtonEventCallback(cb, userData);
 }
 
 void CLinkbot::setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)> cb) {
-    _l->setButtonEventCallback(cb);
+    _l.setButtonEventCallback(cb);
 }
 
 void CLinkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb, double granularity, void* userData) {
-    _l->setEncoderEventCallback(cb, granularity, userData);
+    _l.setEncoderEventCallback(cb, granularity, userData);
 }
 
 void CLinkbot::setEncoderEventCallback (std::function<void(int, double, int)> cb, double granularity) {
-    _l->setEncoderEventCallback(cb, granularity);
+    _l.setEncoderEventCallback(cb, granularity);
 }
 
 void CLinkbot::setAccelerometerEventCallback (LinkbotAccelerometerEventCallback cb, void* userData) {
-    _l->setAccelerometerEventCallback(cb, userData);
+    _l.setAccelerometerEventCallback(cb, userData);
 }
 
 void CLinkbot::setAccelerometerEventCallback (std::function<void(double, double, double, int)> cb) {
-    _l->setAccelerometerEventCallback(cb);
+    _l.setAccelerometerEventCallback(cb);
 }
 
 void CLinkbot::delaySeconds(double seconds) {
@@ -276,8 +273,6 @@ void CLinkbot::delaySeconds(double seconds) {
 }
 
 CLinkbotGroup::CLinkbotGroup() {}
-
-CLinkbotGroup::~CLinkbotGroup() {}
 
 void CLinkbotGroup::addRobot(CLinkbot& robot) {
     mRobots.insert( std::pair<std::string, CLinkbot*>( robot._serialId(), &robot ) );
@@ -431,40 +426,48 @@ void CLinkbotGroup::stop(int mask)
 }
 
 void barobo::sendToPrex(std::string json) {
-    util::asio::IoThread ioThread;
+    //util::asio::IoThread ioThread;
+    auto ioThread = util::global<util::asio::IoThread>();
     auto host = "localhost";
     auto service = std::getenv("PREX_IPC_PORT");
 
+    std::cout<< "1\n";
     /* Pack the json string into a protobuf message */
     PrexMessage msg;
     Image image;
+    std::cout << "2\n";
     image.set_payload(json);
+    std::cout << "3\n";
     image.set_format("JSON");
+    std::cout << "4\n";
     std::ostringstream image_buffer;
+    std::cout << "5\n";
     image.SerializeToOstream(&image_buffer);
+    std::cout << "6\n";
     msg.set_payload(image_buffer.str());
+    std::cout << "7\n";
     msg.set_type(PrexMessage_MessageType_IMAGE);
+    std::cout << "8\n";
     std::ostringstream msg_buffer;
+    std::cout << "9\n";
     msg.SerializeToOstream(&msg_buffer);
+    std::cout << "10\n";
 
-    auto connector = util::asio::ws::Connector{ioThread.context()};
+
+    auto connector = util::asio::ws::Connector{ioThread->context()};
     // a `ws::Connector` wraps a `websocketpp::client`
-    auto clientMq = util::asio::ws::Connector::MessageQueue{ioThread.context()};
+    auto clientMq = util::asio::ws::Connector::MessageQueue{ioThread->context()};
     // a `ws::Connector::MessageQueue` wraps a `websocketpp::client::connection_ptr`
 
     auto use_future = boost::asio::use_future_t<std::allocator<char>>{};
     // We need this special use_future to work around an Asio bug on gcc 5+.
 
+    std::cout << "Connecting to port: " << service << std::endl;
     connector.asyncConnect(clientMq, host, service, use_future).get();
 
     clientMq.asyncSend(boost::asio::buffer(msg_buffer.str()), use_future).get();
 
-    std::array<uint8_t, 1024> clientBuffer;
-    auto nRxBytes = clientMq.asyncReceive(boost::asio::buffer(clientBuffer), use_future).get();
-
     util::log::Logger lg;
-    BOOST_LOG(lg) << "client received "
-        << std::string(clientBuffer.data(), clientBuffer.data() + nRxBytes);
 
     auto ec = boost::system::error_code{};
     clientMq.close(ec);

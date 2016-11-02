@@ -153,8 +153,6 @@ class CLinkbot {
 public:
     explicit CLinkbot (const std::string& serialId = "LOCL");
 
-    ~CLinkbot ();
-
     /* GETTERS */
 
     void getAccelerometerData(double &x, double &y, double &z);
@@ -335,14 +333,13 @@ public:
     std::string _serialId() { return mSerialId; }
 
 protected:
-    Linkbot *_l;
+    Linkbot _l;
     std::string mSerialId;
 };
 
 class CLinkbotGroup {
 public:
     explicit CLinkbotGroup();
-    ~CLinkbotGroup();
 
     void addRobot(CLinkbot& robot);
 
@@ -378,7 +375,6 @@ private:
 class CLinkbotI : public CLinkbot {
 public:
     explicit CLinkbotI(const std::string& serialId = "LOCL");
-    ~CLinkbotI();
 
     void driveAngle(double angle);
     void driveAngleNB(double angle);
@@ -401,7 +397,6 @@ public:
 class CLinkbotL: public CLinkbot {
 public:
     explicit CLinkbotL(const std::string& serialId = "LOCL");
-    ~CLinkbotL();
 };
 
 template <typename T>

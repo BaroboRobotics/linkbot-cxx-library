@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     
-    auto linkbot = barobo::CLinkbot(argv[1]);
+    barobo::CLinkbot linkbot {argv[1]};
 
     // Test buttons 
     linkbot.setButtonEventCallback( [&] (LinkbotButton button, LinkbotButtonState state, int timestamp) {

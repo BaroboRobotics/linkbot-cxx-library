@@ -32,8 +32,6 @@ CLinkbotI::CLinkbotI(const std::string& serialId)
     }
 }
 
-CLinkbotI::~CLinkbotI() { }
-
 void CLinkbotI::driveAngle(double angle) {
     driveAngleNB(angle);
     moveWait(0x05);
@@ -63,7 +61,7 @@ void CLinkbotI::driveDistanceNB(double distance, double radius) {
 }
 
 void CLinkbotI::driveForeverNB() {
-    _l->moveContinuous(0x05, 1, 0, -1);
+    _l.moveContinuous(0x05, 1, 0, -1);
 }
 
 void CLinkbotI::driveForward(double angle) {
@@ -81,7 +79,7 @@ void CLinkbotI::driveTime(double time) {
 }
 
 void CLinkbotI::driveTimeNB(double time) {
-    _l->setJointStates(0x05,
+    _l.setJointStates(0x05,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
         LINKBOT_JOINT_STATE_MOVING, -1, time, LINKBOT_JOINT_STATE_HOLD);

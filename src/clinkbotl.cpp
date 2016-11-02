@@ -32,6 +32,3 @@ CLinkbotL::CLinkbotL(const std::string& serialId)
     }
 }
 
-CLinkbotL::~CLinkbotL() { }
-
-
