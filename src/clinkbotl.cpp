@@ -19,7 +19,7 @@
 #include <linkbot/error.hpp>
 #include <math.h>
 
-using namespace barobo;
+namespace barobo {
 
 CLinkbotL::CLinkbotL(const std::string& serialId)
 : CLinkbot(serialId)
@@ -32,3 +32,4 @@ CLinkbotL::CLinkbotL(const std::string& serialId)
     }
 }
 
+} // namespace barobo

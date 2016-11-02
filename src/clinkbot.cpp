@@ -18,6 +18,7 @@
 #include <linkbot/linkbot.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <thread>
 
@@ -32,12 +33,14 @@
 
 #include "message.pb.h"
 
+
 #define LINKBOT_MAX_SPEED 200
 
-using namespace barobo;
 using std::this_thread::sleep_for;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
+
+namespace barobo {
 
 CLinkbot::CLinkbot(const std::string& serialId) : 
     _l(boost::to_upper_copy<std::string>(serialId)), 
@@ -425,8 +428,10 @@ void CLinkbotGroup::stop(int mask)
     }
 }
 
-void barobo::sendToPrex(std::string json) {
+void sendToPrex(std::string json) {
     //util::asio::IoThread ioThread;
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(2s);
     auto ioThread = util::global<util::asio::IoThread>();
     auto host = "localhost";
     auto service = std::getenv("PREX_IPC_PORT");
@@ -475,3 +480,5 @@ void barobo::sendToPrex(std::string json) {
     connector.close(ec);
     if (ec) { BOOST_LOG(lg) << "connector close: " << ec.message(); }
 }
+
+} // namespace barobo

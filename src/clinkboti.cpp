@@ -19,7 +19,7 @@
 #include <linkbot/error.hpp>
 #include <math.h>
 
-using namespace barobo;
+namespace barobo {
 
 CLinkbotI::CLinkbotI(const std::string& serialId)
 : CLinkbot(serialId)
@@ -106,3 +106,5 @@ void CLinkbotI::turnRight(double angle, double radius, double tracklength) {
 void CLinkbotI::turnRightNB(double angle, double radius, double tracklength) {
     turnLeftNB(-angle, radius, tracklength);
 }
+
+} // namespace barobo
