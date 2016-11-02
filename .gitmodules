@@ -1,0 +1,3 @@
+[submodule "deps/python-prex"]
+	path = deps/python-prex
+	url = https://github.com/davidko/python-prex

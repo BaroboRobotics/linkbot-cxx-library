@@ -40,10 +40,24 @@ enum LinkbotButton {
     LINKBOT_BUTTON_B
 };
 
+enum LinkbotDirection {
+    LINKBOT_BACKWARD=-1,
+    LINKBOT_NEUTRAL=0,
+    LINKBOT_FORWARD=1,
+    LINKBOT_POSITIVE,
+    LINKBOT_NEGATIVE
+};
+
 enum LinkbotFormFactor {
     LINKBOT_FORM_FACTOR_I,
     LINKBOT_FORM_FACTOR_L,
     LINKBOT_FORM_FACTOR_T
+};
+
+enum LinkbotJoint {
+    LINKBOT_JOINT_ONE,
+    LINKBOT_JOINT_TWO,
+    LINKBOT_JOINT_THREE
 };
 
 // Keep in sync with enumeration in robot.proto

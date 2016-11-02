@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2.1)
 project(liblinkbot VERSION 0.3.1 LANGUAGES CXX C)
 
-set(preRelease "dev")
+set(preRelease "rc.7")
 # Examples: dev, rc.0, rc.1, some-feature-branch-name
 #
 # Pre-release data must be a '.'-delimited list of zero or more identifiers composed of one or more
@@ -44,18 +44,27 @@ find_package(Boost 1.59.0 REQUIRED COMPONENTS system log_setup log filesystem th
 find_package(cxx-util)
 find_package(linkbot-interfaces)
 find_package(ribbon-bridge)
+find_package(protobuf REQUIRED CONFIG NAMES protobuf)
 
 set(sources
     src/linkbot.cpp
     src/linkbot.c.cpp
+    src/clinkbot.cpp
+    src/clinkboti.cpp
+    src/clinkbotl.cpp
+    src/message.pb.cc
 )
 
 add_library(linkbot ${sources})
+
+message("protobuf config: ${protobuf_CONFIG}")
+message("LINKING WITH: ${Protobuf_VERSION}")
 
 target_link_libraries(linkbot
     PUBLIC
         barobo::rpc barobo::cxx-util barobo::robot-interface barobo::daemon-interface
         Boost::filesystem Boost::system Boost::log Boost::thread
+        ${Protobuf_LIBRARY}
 )
 
 target_include_directories(linkbot
