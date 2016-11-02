@@ -18,7 +18,6 @@
 #include <linkbot/linkbot.hpp>
 
 #include <algorithm>
-#include <chrono>
 #include <cstdlib>
 #include <thread>
 
@@ -429,35 +428,21 @@ void CLinkbotGroup::stop(int mask)
 }
 
 void sendToPrex(std::string json) {
-    //util::asio::IoThread ioThread;
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(2s);
     auto ioThread = util::global<util::asio::IoThread>();
     auto host = "localhost";
     auto service = std::getenv("PREX_IPC_PORT");
 
-    std::cout<< "1\n";
     /* Pack the json string into a protobuf message */
     PrexMessage msg;
     Image image;
-    std::cout << "2\n";
     image.set_payload(json);
-    std::cout << "3\n";
     image.set_format("JSON");
-    std::cout << "4\n";
     std::ostringstream image_buffer;
-    std::cout << "5\n";
     image.SerializeToOstream(&image_buffer);
-    std::cout << "6\n";
     msg.set_payload(image_buffer.str());
-    std::cout << "7\n";
     msg.set_type(PrexMessage_MessageType_IMAGE);
-    std::cout << "8\n";
     std::ostringstream msg_buffer;
-    std::cout << "9\n";
     msg.SerializeToOstream(&msg_buffer);
-    std::cout << "10\n";
-
 
     auto connector = util::asio::ws::Connector{ioThread->context()};
     // a `ws::Connector` wraps a `websocketpp::client`
@@ -467,7 +452,6 @@ void sendToPrex(std::string json) {
     auto use_future = boost::asio::use_future_t<std::allocator<char>>{};
     // We need this special use_future to work around an Asio bug on gcc 5+.
 
-    std::cout << "Connecting to port: " << service << std::endl;
     connector.asyncConnect(clientMq, host, service, use_future).get();
 
     clientMq.asyncSend(boost::asio::buffer(msg_buffer.str()), use_future).get();

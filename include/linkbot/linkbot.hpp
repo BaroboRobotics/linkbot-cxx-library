@@ -419,7 +419,7 @@ void scatterPlot(T xs, T ys) {
     std::ostringstream buffer;
     buffer << '[';
     buffer << "{\n";
-    buffer << "  x: [";
+    buffer << "  \"x\": [";
     for (auto j = xs.begin(); j != xs.end(); ++j) {
         if( j != xs.begin() ) {
             buffer << ", ";
@@ -427,7 +427,7 @@ void scatterPlot(T xs, T ys) {
         buffer << *j;
     }
     buffer << "],\n";
-    buffer << "  y: [";
+    buffer << "  \"y\": [";
     for (auto j = ys.begin(); j != ys.end(); ++j) {
         if ( j != ys.begin() ) {
             buffer << ", ";
@@ -435,7 +435,7 @@ void scatterPlot(T xs, T ys) {
         buffer << *j;
     }
     buffer << "],\n";
-    buffer << "  type: 'scatter'\n}";
+    buffer << "  \"type\": \"scatter\"\n}";
     buffer << "]\n";
     std::cout << buffer.str();
     sendToPrex(buffer.str());
@@ -454,7 +454,7 @@ void scatterPlot(T xs, T ys, Args... args) {
         buffer << "{\n";
         auto xs = std::get<0>(*i);
         auto ys = std::get<1>(*i);
-        buffer << "  x: [";
+        buffer << "  \"x\": [";
         for (auto j = xs.begin(); j != xs.end(); ++j) {
             if( j != xs.begin() ) {
                 buffer << ", ";
@@ -462,7 +462,7 @@ void scatterPlot(T xs, T ys, Args... args) {
             buffer << *j;
         }
         buffer << "],\n";
-        buffer << "  y: [";
+        buffer << "  \"y\": [";
         for (auto j = ys.begin(); j != ys.end(); ++j) {
             if ( j != ys.begin() ) {
                 buffer << ", ";
@@ -470,7 +470,7 @@ void scatterPlot(T xs, T ys, Args... args) {
             buffer << *j;
         }
         buffer << "],\n";
-        buffer << "  type: 'scatter'\n}";
+        buffer << "  \"type\": \"scatter\"\n}";
     }
     buffer << "]\n";
     std::cout << buffer.str();
