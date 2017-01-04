@@ -194,16 +194,14 @@ public:
     void setMovementStateNB( LinkbotDirection dir1,
             LinkbotDirection dir2,
             LinkbotDirection dir3);
-#if 0 // TODO
-    void setMovementStateTime( robotJointState_t dir1,
-            robotJointState_t dir2,
-            robotJointState_t dir3,
+    void setMovementStateTime( LinkbotDirection dir1,
+            LinkbotDirection dir2,
+            LinkbotDirection dir3,
             double seconds);
-    void setMovementStateTimeNB( robotJointState_t dir1,
-            robotJointState_t dir2,
-            robotJointState_t dir3,
+    void setMovementStateTimeNB( LinkbotDirection dir1,
+            LinkbotDirection dir2,
+            LinkbotDirection dir3,
             double seconds);
-#endif
     void setSpeed(double speed, double radius);
 
     /* MOVEMENT */

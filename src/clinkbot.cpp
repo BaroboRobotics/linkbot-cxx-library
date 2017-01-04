@@ -268,6 +268,59 @@ void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
 }
 
 
+void CLinkbot::setMovementStateTime( LinkbotDirection dir1,
+        LinkbotDirection dir2,
+        LinkbotDirection dir3,
+        double seconds)
+{
+    setMovementStateTimeNB(dir1, dir2, dir3, seconds);
+    moveWait();
+}
+
+void CLinkbot::setMovementStateTimeNB( LinkbotDirection dir1,
+        LinkbotDirection dir2,
+        LinkbotDirection dir3,
+        double seconds)
+{
+    LinkbotJointState states[3];
+    double c[3];
+    std::vector<LinkbotDirection> dirs = {dir1, dir2, dir3};
+    for(auto i = 0; i < 3; i++) {
+        switch(dirs[i]) { 
+            case LINKBOT_NEGATIVE:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = -1;
+                break;
+            case LINKBOT_NEUTRAL:
+                states[i] = LINKBOT_JOINT_STATE_COAST;
+                c[i] = 0;
+                break;
+            case LINKBOT_POSITIVE:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = 1;
+                break;
+            case LINKBOT_FORWARD:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = 1;
+                if(i == 2) {
+                    c[i] *= -1;
+                }
+                break;
+            case LINKBOT_BACKWARD:
+                states[i] = LINKBOT_JOINT_STATE_MOVING;
+                c[i] = -1;
+                if(i == 2) {
+                    c[i] *= -1;
+                }
+                break;
+        }
+    }   
+    _l.setJointStates(0x07,
+        states[0], c[0], seconds, LINKBOT_JOINT_STATE_HOLD,
+        states[1], c[1], seconds, LINKBOT_JOINT_STATE_HOLD,
+        states[2], c[2], seconds, LINKBOT_JOINT_STATE_HOLD);
+}
+
 void CLinkbot::setSpeed(double speed, double radius) {
     auto omega = speed / radius;
     omega *= 180/M_PI;
