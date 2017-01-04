@@ -206,8 +206,8 @@ public:
 
     /* MOVEMENT */
     void accelJointAngleNB(LinkbotJoint id, double acceleration, double angle);
-#if 0 // TODO
     void accelJointTimeNB(LinkbotJoint id, double acceleration, double time);
+#if 0 // TODO
     void accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed);
     void accelJointToMaxSpeedNB(LinkbotJoint id, double acceleration);
     void driveAccelJointTimeNB(double radius, double acceleration,
