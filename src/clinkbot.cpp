@@ -150,6 +150,49 @@ void CLinkbot::setJointMovementStateNB(LinkbotJoint id, LinkbotDirection dir)
         state, coefficient);
 }
 
+void CLinkbot::setJointMovementStateTime(LinkbotJoint id, LinkbotDirection dir, double seconds)
+{
+    setJointMovementStateTimeNB(id, dir, seconds);
+    moveWait(1<<id);
+}
+
+void CLinkbot::setJointMovementStateTimeNB(LinkbotJoint id, LinkbotDirection dir, double seconds)
+{
+    auto coefficient = 0.0;
+    auto state = LINKBOT_JOINT_STATE_COAST;
+    switch(dir) {
+        case LINKBOT_POSITIVE:
+            coefficient = 1;
+            break;
+        case LINKBOT_NEGATIVE:
+            coefficient = -1;
+            break;
+        case LINKBOT_FORWARD:
+            coefficient = (id == LINKBOT_JOINT_THREE)? -1 : 1;
+            break;
+        case LINKBOT_BACKWARD:
+            coefficient = (id == LINKBOT_JOINT_THREE)? 1 : -1;
+            break;
+        default:
+            break;
+    }
+    switch(dir) {
+        case LINKBOT_POSITIVE:
+        case LINKBOT_NEGATIVE:
+        case LINKBOT_FORWARD:
+        case LINKBOT_BACKWARD:
+            state = LINKBOT_JOINT_STATE_MOVING;
+            break;
+        default:
+            break;
+    }
+
+    _l.setJointStates(1<<id,
+        state, coefficient, seconds, LINKBOT_JOINT_STATE_HOLD,
+        state, coefficient, seconds, LINKBOT_JOINT_STATE_HOLD,
+        state, coefficient, seconds, LINKBOT_JOINT_STATE_HOLD);
+}
+
 void CLinkbot::setJointSpeed(LinkbotJoint id, double speed) {
     _l.setJointSpeeds(1<<id, speed, speed, speed);
 }

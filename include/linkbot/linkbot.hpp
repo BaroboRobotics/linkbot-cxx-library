@@ -177,9 +177,9 @@ public:
     void setBuzzerFrequencyOn(int frequency);
     void setBuzzerFrequencyOff();
     void setJointMovementStateNB(LinkbotJoint id, LinkbotDirection dir);
+    void setJointMovementStateTime(LinkbotJoint id, LinkbotDirection dir, double seconds);
+    void setJointMovementStateTimeNB(LinkbotJoint id, LinkbotDirection dir, double seconds);
     #if 0 //TODO 
-    void setJointMovementStateTime(LinkbotJoint id, robotJointState_t dir, double seconds);
-    void setJointMovementStateTimeNB(LinkbotJoint id, robotJointState_t dir, double seconds);
     void setJointSafetyAngle(double angle);
     void setJointSafetyAngleTimeout(double timeout);
     #endif
