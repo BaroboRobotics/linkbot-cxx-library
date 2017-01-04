@@ -205,8 +205,8 @@ public:
     void setSpeed(double speed, double radius);
 
     /* MOVEMENT */
-#if 0 // TODO
     void accelJointAngleNB(LinkbotJoint id, double acceleration, double angle);
+#if 0 // TODO
     void accelJointTimeNB(LinkbotJoint id, double acceleration, double time);
     void accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed);
     void accelJointToMaxSpeedNB(LinkbotJoint id, double acceleration);

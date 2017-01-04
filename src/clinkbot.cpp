@@ -327,6 +327,16 @@ void CLinkbot::setSpeed(double speed, double radius) {
     setJointSpeeds(omega, omega, omega);
 }
 
+void CLinkbot::accelJointAngleNB(LinkbotJoint id, double acceleration, double angle)
+{
+    auto timeout = sqrt( (2*angle)/acceleration );
+    _l.setJointAccelI(1<<id, acceleration, acceleration, acceleration);
+    _l.moveAccel(1<<id, 0x07, 
+        0, timeout, LINKBOT_JOINT_STATE_HOLD,
+        0, timeout, LINKBOT_JOINT_STATE_HOLD,
+        0, timeout, LINKBOT_JOINT_STATE_HOLD);
+}
+
 void CLinkbot::resetToZero() {
     _l.resetEncoderRevs();
     moveTo(0, 0, 0);
