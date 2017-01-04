@@ -114,6 +114,42 @@ void CLinkbot::setBuzzerFrequencyOff() {
     _l.setBuzzerFrequency(0);
 }
 
+void CLinkbot::setJointMovementStateNB(LinkbotJoint id, LinkbotDirection dir)
+{
+    auto coefficient = 0.0;
+    auto state = LINKBOT_JOINT_STATE_COAST;
+    switch(dir) {
+        case LINKBOT_POSITIVE:
+            coefficient = 1;
+            break;
+        case LINKBOT_NEGATIVE:
+            coefficient = -1;
+            break;
+        case LINKBOT_FORWARD:
+            coefficient = (id == LINKBOT_JOINT_THREE)? -1 : 1;
+            break;
+        case LINKBOT_BACKWARD:
+            coefficient = (id == LINKBOT_JOINT_THREE)? 1 : -1;
+            break;
+        default:
+            break;
+    }
+    switch(dir) {
+        case LINKBOT_POSITIVE:
+        case LINKBOT_NEGATIVE:
+        case LINKBOT_FORWARD:
+        case LINKBOT_BACKWARD:
+            state = LINKBOT_JOINT_STATE_MOVING;
+            break;
+        default:
+            break;
+    }
+    _l.setJointStates(1<<id, 
+        state, coefficient,
+        state, coefficient,
+        state, coefficient);
+}
+
 void CLinkbot::setJointSpeed(LinkbotJoint id, double speed) {
     _l.setJointSpeeds(1<<id, speed, speed, speed);
 }
