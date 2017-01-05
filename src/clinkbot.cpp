@@ -556,6 +556,34 @@ void CLinkbot::delaySeconds(double seconds) {
     sleep_for(milliseconds(int(seconds*1000)));
 }
 
+void CLinkbot::recordAnglesBegin(
+        std::vector<double> &time1,
+        std::vector<double> &angle1,
+        std::vector<double> &time2,
+        std::vector<double> &angle2,
+        std::vector<double> &time3,
+        std::vector<double> &angle3)
+{
+    _l.setEncoderEventCallback(
+        [&time1, &angle1, &time2, &angle2, &time3, &angle3] (int motor, double angle, int timestamp) {
+            if( (motor < 0) || (motor > 2) ) {
+                return;
+            }
+            std::cout << ".\n";
+            std::array<std::vector<double>*, 3> times{ {&time1, &time2, &time3} };
+            std::array<std::vector<double>*, 3> angles{ {&angle1, &angle2, &angle3} };
+            times[motor]->push_back(timestamp);
+            angles[motor]->push_back(angle);
+        },
+        2.0
+    );
+}
+
+void CLinkbot::recordAnglesEnd()
+{
+    _l.setEncoderEventCallback(nullptr, 0);
+}
+
 CLinkbotGroup::CLinkbotGroup() {}
 
 void CLinkbotGroup::addRobot(CLinkbot& robot) {
@@ -713,6 +741,10 @@ void sendToPrex(std::string json) {
     auto ioThread = util::global<util::asio::IoThread>();
     auto host = "localhost";
     auto service = std::getenv("PREX_IPC_PORT");
+
+    if(!service) {
+        return;
+    }
 
     /* Pack the json string into a protobuf message */
     PrexMessage msg;

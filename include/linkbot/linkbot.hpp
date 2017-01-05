@@ -283,15 +283,20 @@ public:
     void disableButtonCallback();
     */
     void blinkLED(double delay, int numBlinks);
+#endif
     void recordAnglesBegin(
-        robotRecordData_t &time,
-        robotRecordData_t &angle1,
-        robotRecordData_t &angle2,
-        robotRecordData_t &angle3,
-        double timeInterval = 0.1,
-        int mask = 0x07,
-        int shiftData = 1);
-    void recordAnglesEnd(int &num);
+        std::vector<double> &time1,
+        std::vector<double> &angle1,
+        std::vector<double> &time2,
+        std::vector<double> &angle2,
+        std::vector<double> &time3,
+        std::vector<double> &angle3
+    //  double timeInterval = 0.1,
+    //  int mask = 0x07,
+    //  int shiftData = 1
+    );
+    void recordAnglesEnd();
+#if 0
     void recordDistanceBegin(
         LinkbotJoint id,
         robotRecordData_t &time,
