@@ -346,6 +346,32 @@ void CLinkbot::accelJointTimeNB(LinkbotJoint id, double acceleration, double tim
         0, time, LINKBOT_JOINT_STATE_HOLD);
 }
 
+void CLinkbot::accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed)
+{
+    auto timeout = speed/acceleration;
+    _l.setJointAccelI(1<<id, acceleration, acceleration, acceleration);
+    _l.moveAccel(1<<id, 0x07, 
+        0, timeout, LINKBOT_JOINT_STATE_MOVING,
+        0, timeout, LINKBOT_JOINT_STATE_MOVING,
+        0, timeout, LINKBOT_JOINT_STATE_MOVING);
+}
+
+void CLinkbot::accelJointToMaxSpeedNB(LinkbotJoint id, double acceleration)
+{
+    accelJointToVelocityNB(id, acceleration, LINKBOT_MAX_SPEED);
+}
+
+void CLinkbot::driveAccelJointTimeNB(double radius, double acceleration,
+            double time)
+{
+    _l.setJointAccelI(0x05, acceleration, 0, -acceleration);
+    auto alpha = (acceleration / radius) * 180 / M_PI;
+    _l.moveAccel(0x05, 0x07, 
+        0, time, LINKBOT_JOINT_STATE_HOLD,
+        0, time, LINKBOT_JOINT_STATE_HOLD,
+        0, time, LINKBOT_JOINT_STATE_HOLD);
+}
+
 void CLinkbot::resetToZero() {
     _l.resetEncoderRevs();
     moveTo(0, 0, 0);

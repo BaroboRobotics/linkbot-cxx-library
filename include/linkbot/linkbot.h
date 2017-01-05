@@ -29,6 +29,8 @@
 extern "C" {
 #endif
 
+#define LINKBOT_MAX_SPEED 200
+
 enum LinkbotButtonState {
     LINKBOT_BUTTON_STATE_UP,
     LINKBOT_BUTTON_STATE_DOWN
