@@ -61,9 +61,19 @@ int main(int argc, char **argv) {
     linkbot.accelJointTimeNB(LINKBOT_JOINT_ONE, 30, 4);
     linkbot.moveWait();
 
-    std::cout<< "accelJointToVelocityNB(), 30 deg/s/s, 180deg/s\n";
+    std::cout<< "accelJointToVelocityNB(), 30 deg/s/s, 90deg/s\n";
     linkbot.accelJointToVelocityNB(LINKBOT_JOINT_ONE, 30, 90);
     sleep_for(seconds(5));
+
+    std::cout<< "driveAccelJointTimeNB(), 3.5inch radius, 3inch/s/s acceleration, 4 seconds\n";
+    linkbot.driveAccelJointTimeNB(3.5, 3, 4);
+    sleep_for(seconds(5));
+
+    std::cout<< "moveForeverNB() for 5 seconds\n";
+    linkbot.moveForeverNB();
+    sleep_for(seconds(5));
+
+    linkbot.stop();
 
     return 0;
 }

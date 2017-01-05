@@ -421,6 +421,14 @@ void CLinkbot::moveWait(int mask) {
     _l.moveWait(mask);
 }
 
+void CLinkbot::moveForeverNB()
+{
+    _l.setJointStates(0x07, 
+        LINKBOT_JOINT_STATE_MOVING, 1,
+        LINKBOT_JOINT_STATE_MOVING, 1,
+        LINKBOT_JOINT_STATE_MOVING, 1);
+}
+
 void CLinkbot::moveJoint(LinkbotJoint id, double angle) {
     moveJointNB(id, angle);
     moveJointWait(id);
@@ -430,8 +438,55 @@ void CLinkbot::moveJointNB(LinkbotJoint id, double angle) {
     _l.move(1<<id, angle, angle, angle);
 }
 
+void CLinkbot::moveJointForeverNB(LinkbotJoint id)
+{
+    _l.setJointStates(1<<id, 
+        LINKBOT_JOINT_STATE_MOVING, 1,
+        LINKBOT_JOINT_STATE_MOVING, 1,
+        LINKBOT_JOINT_STATE_MOVING, 1);
+}
+
+void CLinkbot::moveJointTime(LinkbotJoint id, double time)
+{
+    moveJointTimeNB(id, time);
+    moveWait(1<<id);
+}
+
+void CLinkbot::moveJointTimeNB(LinkbotJoint id, double time)
+{
+    _l.setJointStates(1<<id,
+        LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
+        LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
+        LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD);
+}
+
 void CLinkbot::moveJointWait(LinkbotJoint id) {
     _l.moveWait(1<<id);
+}
+
+void CLinkbot::moveJointTo(LinkbotJoint id, double angle)
+{
+    moveJointToNB(id, angle);
+    moveWait(1<<id);
+}
+
+void CLinkbot::moveJointToNB(LinkbotJoint id, double angle)
+{
+    _l.moveTo(1<<id, angle, angle, angle);
+}
+
+void CLinkbot::moveTime(double time)
+{
+    moveTimeNB(time);
+    moveWait();
+}
+
+void CLinkbot::moveTimeNB(double time)
+{
+    _l.setJointStates(0x07,
+        LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
+        LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
+        LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD);
 }
 
 void CLinkbot::moveTo(double angle1, double angle2, double angle3) {
@@ -443,8 +498,34 @@ void CLinkbot::moveToNB(double angle1, double angle2, double angle3) {
     _l.moveTo(7, angle1, angle2, angle3);
 }
 
+void CLinkbot::moveToZero()
+{
+    moveToZeroNB();
+    moveWait();
+}
+
+void CLinkbot::moveToZeroNB()
+{
+    moveToNB(0, 0, 0);
+}
+
+void CLinkbot::relaxJoint(LinkbotJoint id)
+{
+    stop(1<<id);
+}
+
+void CLinkbot::relaxJoints()
+{
+    stop();
+}
+
 void CLinkbot::stop(int mask) {
     _l.stop(mask);
+}
+
+void CLinkbot::stopOneJoint(LinkbotJoint id)
+{
+    stop(1<<id);
 }
 
 void CLinkbot::setButtonEventCallback( LinkbotButtonEventCallback cb, void* userData) {

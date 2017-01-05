@@ -228,43 +228,39 @@ public:
     void move(double j1, double j2, double j3);
     void moveNB(double j1, double j2, double j3);
     void moveWait(int mask=0x07);
-#if 0 // TODO
     void moveForeverNB();
-#endif
     void moveJoint(LinkbotJoint id, double angle);
     void moveJointNB(LinkbotJoint id, double angle);
-#if 0
     void moveJointForeverNB(LinkbotJoint id);
     void moveJointTime(LinkbotJoint id, double time);
     void moveJointTimeNB(LinkbotJoint id, double time);
     void moveJointTo(LinkbotJoint id, double angle);
     void moveJointToNB(LinkbotJoint id, double angle);
+#if 0
     void moveJointToByTrackPos(LinkbotJoint id, double angle);
     void moveJointToByTrackPosNB(LinkbotJoint id, double angle);
 #endif
     void moveJointWait(LinkbotJoint id);
-#if 0
     void moveTime(double time);
     void moveTimeNB(double time);
-#endif
     void moveTo(double angle1, double angle2, double angle3);
     void moveToNB(double angle1, double angle2, double angle3);
 #if 0 // TODO
     void moveToByTrackPos(double angle1, double angle2, double angle3);
     void moveToByTrackPosNB(double angle1, double angle2, double angle3);
+#endif
     void moveToZero();
     void moveToZeroNB();
+#if 0
     void openGripper(double angle);
     void openGripperNB(double angle);
+#endif
     void relaxJoint(LinkbotJoint id);
     void relaxJoints();
-#endif
     void resetToZero();
     void resetToZeroNB();
     void stop(int mask = 0x07);
-#if 0
     void stopOneJoint(LinkbotJoint id);
-#endif
 
     /* CALLBACKS */
     // Passing a null pointer as the first parameter of those three functions
