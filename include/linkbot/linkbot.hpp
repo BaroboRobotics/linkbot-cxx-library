@@ -211,12 +211,12 @@ public:
     void accelJointToMaxSpeedNB(LinkbotJoint id, double acceleration);
     void driveAccelJointTimeNB(double radius, double acceleration,
             double time);
-#if 0 // TODO
     void driveAccelToVelocityNB(double radius, double acceleration,
             double velocity);
     void driveAccelToMaxSpeedNB(double radius, double acceleration);
     void driveAccelDistanceNB(double radius, double acceleration, 
             double distance);
+#if 0 // TODO
     void closeGripper();
     void closeGripperNB();
     void holdJoint(LinkbotJoint id);
