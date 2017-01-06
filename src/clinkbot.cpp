@@ -42,38 +42,38 @@ using std::chrono::milliseconds;
 namespace barobo {
 
 CLinkbot::CLinkbot(const std::string& serialId) : 
-    _l(boost::to_upper_copy<std::string>(serialId)), 
+    Linkbot(boost::to_upper_copy<std::string>(serialId)), 
     mSerialId(boost::to_upper_copy<std::string>(serialId))  
 { }
 
 void CLinkbot::getAccelerometerData(double &x, double &y, double &z) {
     int timestamp;
-    _l.getAccelerometer(timestamp, x, y, z);
+    Linkbot::getAccelerometer(timestamp, x, y, z);
 }
 
 void CLinkbot::getBatteryVoltage(double &voltage) {
-    _l.getBatteryVoltage(voltage);
+    Linkbot::getBatteryVoltage(voltage);
 }
 
 void CLinkbot::getFormFactor(LinkbotFormFactor &form) {
-    _l.getFormFactor(form);
+    Linkbot::getFormFactor(form);
 }
 
 void CLinkbot::getJointAngle(LinkbotJoint joint, double &angle) {
     double angles[3];
     int timestamp;
-    _l.getJointAngles(timestamp, angles[0], angles[1], angles[2]);
+    Linkbot::getJointAngles(timestamp, angles[0], angles[1], angles[2]);
     angle = angles[joint];
 }
 
 void CLinkbot::getJointAngles(double &angle1, double &angle2, double &angle3) {
     int timestamp;
-    _l.getJointAngles(timestamp, angle1, angle2, angle3);
+    Linkbot::getJointAngles(timestamp, angle1, angle2, angle3);
 }
 
 void CLinkbot::getJointSpeed(LinkbotJoint id, double &speed) {
     double speeds[3];
-    _l.getJointSpeeds(speeds[0], speeds[1], speeds[2]);
+    Linkbot::getJointSpeeds(speeds[0], speeds[1], speeds[2]);
     speed = speeds[id];
 }
 
@@ -84,7 +84,7 @@ void CLinkbot::getJointSpeedRatio(LinkbotJoint id, double &ratio) {
 }
 
 void CLinkbot::getJointSpeeds(double &speed1, double &speed2, double &speed3) {
-    _l.getJointSpeeds(speed1, speed2, speed3);
+    Linkbot::getJointSpeeds(speed1, speed2, speed3);
 }
 
 void CLinkbot::getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio3) {
@@ -95,23 +95,23 @@ void CLinkbot::getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio
 }
 
 void CLinkbot::getLEDColorRGB(int &r, int &g, int &b) {
-    _l.getLedColor(r, g, b);
+    Linkbot::getLedColor(r, g, b);
 }
 
 // SETTERS
 
 void CLinkbot::setBuzzerFrequency(int frequency, double time) {
-    _l.setBuzzerFrequency(frequency);
+    Linkbot::setBuzzerFrequency(frequency);
     sleep_for(milliseconds(int(time*1000)));
-    _l.setBuzzerFrequency(0);
+    Linkbot::setBuzzerFrequency(0);
 }
 
 void CLinkbot::setBuzzerFrequencyOn(int frequency) {
-    _l.setBuzzerFrequency(frequency);
+    Linkbot::setBuzzerFrequency(frequency);
 }
 
 void CLinkbot::setBuzzerFrequencyOff() {
-    _l.setBuzzerFrequency(0);
+    Linkbot::setBuzzerFrequency(0);
 }
 
 void CLinkbot::setJointMovementStateNB(LinkbotJoint id, LinkbotDirection dir)
@@ -144,7 +144,7 @@ void CLinkbot::setJointMovementStateNB(LinkbotJoint id, LinkbotDirection dir)
         default:
             break;
     }
-    _l.setJointStates(1<<id, 
+    Linkbot::setJointStates(1<<id, 
         state, coefficient,
         state, coefficient,
         state, coefficient);
@@ -187,18 +187,18 @@ void CLinkbot::setJointMovementStateTimeNB(LinkbotJoint id, LinkbotDirection dir
             break;
     }
 
-    _l.setJointStates(1<<id,
+    Linkbot::setJointStates(1<<id,
         state, coefficient, seconds, LINKBOT_JOINT_STATE_HOLD,
         state, coefficient, seconds, LINKBOT_JOINT_STATE_HOLD,
         state, coefficient, seconds, LINKBOT_JOINT_STATE_HOLD);
 }
 
 void CLinkbot::setJointSpeed(LinkbotJoint id, double speed) {
-    _l.setJointSpeeds(1<<id, speed, speed, speed);
+    Linkbot::setJointSpeeds(1<<id, speed, speed, speed);
 }
 
 void CLinkbot::setJointSpeeds(double speed1, double speed2, double speed3) {
-    _l.setJointSpeeds(7, speed1, speed2, speed3);
+    Linkbot::setJointSpeeds(7, speed1, speed2, speed3);
 }
 
 void CLinkbot::setJointSpeedRatio(LinkbotJoint id, double ratio) {
@@ -213,15 +213,15 @@ void CLinkbot::setJointSpeedRatios(double ratio1, double ratio2, double ratio3) 
 }
 
 void CLinkbot::setJointPower(LinkbotJoint id, double power) {
-    _l.motorPower(1<<id, power*255, power*255, power*255);
+    Linkbot::motorPower(1<<id, power*255, power*255, power*255);
 }
 
 void CLinkbot::setLEDColorRGB(int r, int g, int b) {
-    _l.setLedColor(r, g, b);
+    Linkbot::setLedColor(r, g, b);
 }
 
 void CLinkbot::setMotorPowers(double p1, double p2, double p3) {
-    _l.motorPower(7, p1*255, p2*255, p3*255);
+    Linkbot::motorPower(7, p1*255, p2*255, p3*255);
 }
 
 void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
@@ -261,7 +261,7 @@ void CLinkbot::setMovementStateNB(LinkbotDirection dir1,
                 break;
         }
     }   
-    _l.setJointStates(0x07, 
+    Linkbot::setJointStates(0x07, 
         states[0], c[0],
         states[1], c[1],
         states[2], c[2]);
@@ -315,7 +315,7 @@ void CLinkbot::setMovementStateTimeNB( LinkbotDirection dir1,
                 break;
         }
     }   
-    _l.setJointStates(0x07,
+    Linkbot::setJointStates(0x07,
         states[0], c[0], seconds, LINKBOT_JOINT_STATE_HOLD,
         states[1], c[1], seconds, LINKBOT_JOINT_STATE_HOLD,
         states[2], c[2], seconds, LINKBOT_JOINT_STATE_HOLD);
@@ -330,8 +330,8 @@ void CLinkbot::setSpeed(double speed, double radius) {
 void CLinkbot::accelJointAngleNB(LinkbotJoint id, double acceleration, double angle)
 {
     auto timeout = sqrt( (2*angle)/acceleration );
-    _l.setJointAccelI(1<<id, acceleration, acceleration, acceleration);
-    _l.moveAccel(1<<id, 0x07, 
+    Linkbot::setJointAccelI(1<<id, acceleration, acceleration, acceleration);
+    Linkbot::moveAccel(1<<id, 0x07, 
         0, timeout, LINKBOT_JOINT_STATE_HOLD,
         0, timeout, LINKBOT_JOINT_STATE_HOLD,
         0, timeout, LINKBOT_JOINT_STATE_HOLD);
@@ -339,8 +339,8 @@ void CLinkbot::accelJointAngleNB(LinkbotJoint id, double acceleration, double an
 
 void CLinkbot::accelJointTimeNB(LinkbotJoint id, double acceleration, double time)
 {
-    _l.setJointAccelI(1<<id, acceleration, acceleration, acceleration);
-    _l.moveAccel(1<<id, 0x07,
+    Linkbot::setJointAccelI(1<<id, acceleration, acceleration, acceleration);
+    Linkbot::moveAccel(1<<id, 0x07,
         0, time, LINKBOT_JOINT_STATE_HOLD,
         0, time, LINKBOT_JOINT_STATE_HOLD,
         0, time, LINKBOT_JOINT_STATE_HOLD);
@@ -349,8 +349,8 @@ void CLinkbot::accelJointTimeNB(LinkbotJoint id, double acceleration, double tim
 void CLinkbot::accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed)
 {
     auto timeout = speed/acceleration;
-    _l.setJointAccelI(1<<id, acceleration, acceleration, acceleration);
-    _l.moveAccel(1<<id, 0x07, 
+    Linkbot::setJointAccelI(1<<id, acceleration, acceleration, acceleration);
+    Linkbot::moveAccel(1<<id, 0x07, 
         0, timeout, LINKBOT_JOINT_STATE_MOVING,
         0, timeout, LINKBOT_JOINT_STATE_MOVING,
         0, timeout, LINKBOT_JOINT_STATE_MOVING);
@@ -365,8 +365,8 @@ void CLinkbot::driveAccelJointTimeNB(double radius, double acceleration,
             double time)
 {
     auto alpha = (acceleration / radius) * 180 / M_PI;
-    _l.setJointAccelI(0x05, alpha, 0, -alpha);
-    _l.moveAccel(0x05, 0x07, 
+    Linkbot::setJointAccelI(0x05, alpha, 0, -alpha);
+    Linkbot::moveAccel(0x05, 0x07, 
         0, time, LINKBOT_JOINT_STATE_HOLD,
         0, time, LINKBOT_JOINT_STATE_HOLD,
         0, time, LINKBOT_JOINT_STATE_HOLD);
@@ -376,9 +376,9 @@ void CLinkbot::driveAccelToVelocityNB(double radius, double acceleration,
             double velocity)
 {
     auto alpha = (acceleration / radius) * 180 / M_PI;
-    _l.setJointAccelI(0x06, alpha, 0, -alpha);
+    Linkbot::setJointAccelI(0x06, alpha, 0, -alpha);
     auto time = velocity / acceleration;
-    _l.moveAccel(0x05, 0x07, 
+    Linkbot::moveAccel(0x05, 0x07, 
         0, time, LINKBOT_JOINT_STATE_MOVING,
         0, time, LINKBOT_JOINT_STATE_MOVING,
         0, time, LINKBOT_JOINT_STATE_MOVING);
@@ -397,12 +397,12 @@ void CLinkbot::driveAccelDistanceNB(double radius, double acceleration,
 }
 
 void CLinkbot::resetToZero() {
-    _l.resetEncoderRevs();
+    Linkbot::resetEncoderRevs();
     moveTo(0, 0, 0);
 }
 
 void CLinkbot::resetToZeroNB() {
-    _l.resetEncoderRevs();
+    Linkbot::resetEncoderRevs();
     moveToNB(0, 0, 0);
 }
 
@@ -414,16 +414,16 @@ void CLinkbot::move(double j1, double j2, double j3) {
 }
 
 void CLinkbot::moveNB(double j1, double j2, double j3) {
-    _l.move(7, j1, j2, j3);
+    Linkbot::move(7, j1, j2, j3);
 }
 
 void CLinkbot::moveWait(int mask) {
-    _l.moveWait(mask);
+    Linkbot::moveWait(mask);
 }
 
 void CLinkbot::moveForeverNB()
 {
-    _l.setJointStates(0x07, 
+    Linkbot::setJointStates(0x07, 
         LINKBOT_JOINT_STATE_MOVING, 1,
         LINKBOT_JOINT_STATE_MOVING, 1,
         LINKBOT_JOINT_STATE_MOVING, 1);
@@ -435,12 +435,12 @@ void CLinkbot::moveJoint(LinkbotJoint id, double angle) {
 }
 
 void CLinkbot::moveJointNB(LinkbotJoint id, double angle) {
-    _l.move(1<<id, angle, angle, angle);
+    Linkbot::move(1<<id, angle, angle, angle);
 }
 
 void CLinkbot::moveJointForeverNB(LinkbotJoint id)
 {
-    _l.setJointStates(1<<id, 
+    Linkbot::setJointStates(1<<id, 
         LINKBOT_JOINT_STATE_MOVING, 1,
         LINKBOT_JOINT_STATE_MOVING, 1,
         LINKBOT_JOINT_STATE_MOVING, 1);
@@ -454,14 +454,14 @@ void CLinkbot::moveJointTime(LinkbotJoint id, double time)
 
 void CLinkbot::moveJointTimeNB(LinkbotJoint id, double time)
 {
-    _l.setJointStates(1<<id,
+    Linkbot::setJointStates(1<<id,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD);
 }
 
 void CLinkbot::moveJointWait(LinkbotJoint id) {
-    _l.moveWait(1<<id);
+    Linkbot::moveWait(1<<id);
 }
 
 void CLinkbot::moveJointTo(LinkbotJoint id, double angle)
@@ -472,7 +472,7 @@ void CLinkbot::moveJointTo(LinkbotJoint id, double angle)
 
 void CLinkbot::moveJointToNB(LinkbotJoint id, double angle)
 {
-    _l.moveTo(1<<id, angle, angle, angle);
+    Linkbot::moveTo(1<<id, angle, angle, angle);
 }
 
 void CLinkbot::moveTime(double time)
@@ -483,7 +483,7 @@ void CLinkbot::moveTime(double time)
 
 void CLinkbot::moveTimeNB(double time)
 {
-    _l.setJointStates(0x07,
+    Linkbot::setJointStates(0x07,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD,
         LINKBOT_JOINT_STATE_MOVING, 1, time, LINKBOT_JOINT_STATE_HOLD);
@@ -495,7 +495,7 @@ void CLinkbot::moveTo(double angle1, double angle2, double angle3) {
 }
 
 void CLinkbot::moveToNB(double angle1, double angle2, double angle3) {
-    _l.moveTo(7, angle1, angle2, angle3);
+    Linkbot::moveTo(7, angle1, angle2, angle3);
 }
 
 void CLinkbot::moveToZero()
@@ -520,7 +520,7 @@ void CLinkbot::relaxJoints()
 }
 
 void CLinkbot::stop(int mask) {
-    _l.stop(mask);
+    Linkbot::stop(mask);
 }
 
 void CLinkbot::stopOneJoint(LinkbotJoint id)
@@ -529,27 +529,27 @@ void CLinkbot::stopOneJoint(LinkbotJoint id)
 }
 
 void CLinkbot::setButtonEventCallback( LinkbotButtonEventCallback cb, void* userData) {
-    _l.setButtonEventCallback(cb, userData);
+    Linkbot::setButtonEventCallback(cb, userData);
 }
 
 void CLinkbot::setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)> cb) {
-    _l.setButtonEventCallback(cb);
+    Linkbot::setButtonEventCallback(cb);
 }
 
 void CLinkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb, double granularity, void* userData) {
-    _l.setEncoderEventCallback(cb, granularity, userData);
+    Linkbot::setEncoderEventCallback(cb, granularity, userData);
 }
 
 void CLinkbot::setEncoderEventCallback (std::function<void(int, double, int)> cb, double granularity) {
-    _l.setEncoderEventCallback(cb, granularity);
+    Linkbot::setEncoderEventCallback(cb, granularity);
 }
 
 void CLinkbot::setAccelerometerEventCallback (LinkbotAccelerometerEventCallback cb, void* userData) {
-    _l.setAccelerometerEventCallback(cb, userData);
+    Linkbot::setAccelerometerEventCallback(cb, userData);
 }
 
 void CLinkbot::setAccelerometerEventCallback (std::function<void(double, double, double, int)> cb) {
-    _l.setAccelerometerEventCallback(cb);
+    Linkbot::setAccelerometerEventCallback(cb);
 }
 
 void CLinkbot::delaySeconds(double seconds) {
@@ -564,7 +564,7 @@ void CLinkbot::recordAnglesBegin(
         std::vector<double> &time3,
         std::vector<double> &angle3)
 {
-    _l.setEncoderEventCallback(
+    Linkbot::setEncoderEventCallback(
         [&time1, &angle1, &time2, &angle2, &time3, &angle3] (int motor, double angle, int timestamp) {
             if( (motor < 0) || (motor > 2) ) {
                 return;
@@ -581,7 +581,7 @@ void CLinkbot::recordAnglesBegin(
 
 void CLinkbot::recordAnglesEnd()
 {
-    _l.setEncoderEventCallback(nullptr, 0);
+    Linkbot::setEncoderEventCallback(nullptr, 0);
 }
 
 CLinkbotGroup::CLinkbotGroup() {}
