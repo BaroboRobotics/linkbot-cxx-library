@@ -556,32 +556,29 @@ void CLinkbot::delaySeconds(double seconds) {
     sleep_for(milliseconds(int(seconds*1000)));
 }
 
-void CLinkbot::recordAnglesBegin(
-        std::vector<double> &time1,
-        std::vector<double> &angle1,
-        std::vector<double> &time2,
-        std::vector<double> &angle2,
-        std::vector<double> &time3,
-        std::vector<double> &angle3)
+void CLinkbot::recordAnglesBegin()
 {
+    // Clear the vectors
+    for (auto&& v : _plotData) {
+        v.clear();
+    }
+
     Linkbot::setEncoderEventCallback(
-        [&time1, &angle1, &time2, &angle2, &time3, &angle3] (int motor, double angle, int timestamp) {
+        [this] (int motor, double angle, int timestamp) {
             if( (motor < 0) || (motor > 2) ) {
                 return;
             }
-            std::cout << ".\n";
-            std::array<std::vector<double>*, 3> times{ {&time1, &time2, &time3} };
-            std::array<std::vector<double>*, 3> angles{ {&angle1, &angle2, &angle3} };
-            times[motor]->push_back(timestamp);
-            angles[motor]->push_back(angle);
+            _plotData[motor*2].push_back(timestamp);
+            _plotData[motor*2 + 1].push_back(angle);
         },
         2.0
     );
 }
 
-void CLinkbot::recordAnglesEnd()
+PlotData CLinkbot::recordAnglesEnd()
 {
     Linkbot::setEncoderEventCallback(nullptr, 0);
+    return _plotData;
 }
 
 CLinkbotGroup::CLinkbotGroup() {}
@@ -777,6 +774,10 @@ void sendToPrex(std::string json) {
     if (ec) { BOOST_LOG(lg) << "client message queue close: " << ec.message(); }
     connector.close(ec);
     if (ec) { BOOST_LOG(lg) << "connector close: " << ec.message(); }
+}
+
+void scatterPlot(PlotData data) {
+    scatterPlot(data[0], data[1], data[2], data[3], data[4], data[5]);
 }
 
 } // namespace barobo

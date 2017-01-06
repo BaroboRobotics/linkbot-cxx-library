@@ -30,6 +30,8 @@
 
 namespace barobo {
 
+    using PlotData = std::array< std::vector<double>, 6 >;
+    
 /* A C++03-compatible Linkbot API. */
 class Linkbot {
 public:
@@ -285,17 +287,11 @@ public:
     virtual void blinkLED(double delay, int numBlinks);
 #endif
     virtual void recordAnglesBegin(
-        std::vector<double> &time1,
-        std::vector<double> &angle1,
-        std::vector<double> &time2,
-        std::vector<double> &angle2,
-        std::vector<double> &time3,
-        std::vector<double> &angle3
     //  double timeInterval = 0.1,
     //  int mask = 0x07,
     //  int shiftData = 1
     );
-    virtual void recordAnglesEnd();
+    PlotData recordAnglesEnd();
 #if 0
     virtual void recordDistanceBegin(
         LinkbotJoint id,
@@ -330,6 +326,8 @@ public:
 #endif // TODO
 
     std::string _serialId() { return mSerialId; }
+
+    PlotData _plotData;
 
 protected:
     std::string mSerialId;
@@ -475,6 +473,8 @@ void scatterPlot(T xs, T ys, Args... args) {
     sendToPrex(buffer.str());
 }
 
+void scatterPlot(PlotData data);
+ 
 } // barobo
 
 #endif
