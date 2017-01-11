@@ -291,7 +291,7 @@ public:
                 mask &= 0x07;
                 break;
         }
-        isMoving = mask;
+        isMoving |= mask;
     }
 
     std::shared_ptr<util::asio::IoThread> io;
