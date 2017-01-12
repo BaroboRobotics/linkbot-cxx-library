@@ -161,7 +161,7 @@ public:
 
     virtual void getAccelerometerData(double &x, double &y, double &z);
     virtual void getBatteryVoltage(double &voltage);
-    //void getDistance(double &distance, double radius);
+    virtual void getDistance(double &distance, double radius);
     virtual void getFormFactor(LinkbotFormFactor& form);
     virtual void getJointAngle(LinkbotJoint id, double &angle);
     virtual void getJointAngles(double &angle1, double &angle2, double &angle3);

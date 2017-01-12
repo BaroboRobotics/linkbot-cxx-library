@@ -59,6 +59,16 @@ void CLinkbot::getBatteryVoltage(double &voltage) {
     Linkbot::getBatteryVoltage(voltage);
 }
 
+void CLinkbot::getDistance(double &distance, double radius)
+{
+    int timestamp;
+    double a1, a2, a3;
+    Linkbot::getJointAngles(timestamp, a1, a2, a3);
+    // Convert to radians
+    a1 = a1 * M_PI / 180.0;
+    distance = a1 * radius;
+}
+
 void CLinkbot::getFormFactor(LinkbotFormFactor &form) {
     Linkbot::getFormFactor(form);
 }
@@ -354,6 +364,10 @@ void CLinkbot::accelJointToVelocityNB(LinkbotJoint id, double acceleration, doub
 {
     auto timeout = speed/acceleration;
     Linkbot::setJointAccelI(1<<id, acceleration, acceleration, acceleration);
+    Linkbot::setJointSpeeds(0x07, 
+        LINKBOT_MAX_SPEED,
+        LINKBOT_MAX_SPEED,
+        LINKBOT_MAX_SPEED);
     Linkbot::moveAccel(1<<id, 0x07, 
         0, timeout, LINKBOT_JOINT_STATE_MOVING,
         0, timeout, LINKBOT_JOINT_STATE_MOVING,
