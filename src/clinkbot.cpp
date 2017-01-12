@@ -32,6 +32,8 @@
 
 #include "message.pb.h"
 
+#include "rgbhashtable.h"
+
 
 #define LINKBOT_MAX_SPEED 200
 
@@ -106,6 +108,18 @@ void CLinkbot::getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio
     ratio1 /= LINKBOT_MAX_SPEED;
     ratio2 /= LINKBOT_MAX_SPEED;
     ratio3 /= LINKBOT_MAX_SPEED;
+}
+
+void CLinkbot::getLEDColor(char color[]) {
+  int getRGB[3];
+  int retval;
+  rgbHashTable * rgbTable = NULL;
+
+  getLEDColorRGB(getRGB[0], getRGB[1], getRGB[2]);
+
+  rgbTable = HT_Create();
+  retval = HT_GetKey(rgbTable, getRGB, color);
+  HT_Destroy(rgbTable);
 }
 
 void CLinkbot::getLEDColorRGB(int &r, int &g, int &b) {
@@ -228,6 +242,18 @@ void CLinkbot::setJointSpeedRatios(double ratio1, double ratio2, double ratio3) 
 
 void CLinkbot::setJointPower(LinkbotJoint id, double power) {
     Linkbot::motorPower(1<<id, power*255, power*255, power*255);
+}
+
+void CLinkbot::setLEDColor(const char* color)
+{
+  int htRetval;
+  int getRGB[3];
+  rgbHashTable * rgbTable = HT_Create();
+
+  htRetval = HT_Get(rgbTable, color, getRGB);
+  HT_Destroy(rgbTable);
+
+  setLEDColorRGB(getRGB[0], getRGB[1], getRGB[2]);
 }
 
 void CLinkbot::setLEDColorRGB(int r, int g, int b) {

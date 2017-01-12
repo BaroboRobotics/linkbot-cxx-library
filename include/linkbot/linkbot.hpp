@@ -174,7 +174,7 @@ public:
     virtual void getJointSpeeds(double &speed1, double &speed2, double &speed3);
     virtual void getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio3);
     virtual void getLEDColorRGB(int &r, int &g, int &b);
-    //void getLEDColor(char color[]);
+    void getLEDColor(char color[]);
 
     /* SETTERS */
     virtual void setBuzzerFrequency(int frequency, double time);
@@ -193,7 +193,7 @@ public:
     virtual void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
     virtual void setJointPower(LinkbotJoint id, double power);
     virtual void setLEDColorRGB(int r, int g, int b);
-    //void setLEDColor(char *color);
+    void setLEDColor(const char *color);
     virtual void setMotorPowers(double p1, double p2, double p3);
     virtual void setMovementStateNB( LinkbotDirection dir1,
             LinkbotDirection dir2,

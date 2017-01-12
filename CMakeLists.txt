@@ -53,6 +53,7 @@ set(sources
     src/clinkboti.cpp
     src/clinkbotl.cpp
     src/message.pb.cc
+    src/rgbhashtable.c.cpp
 )
 
 add_library(linkbot ${sources})
