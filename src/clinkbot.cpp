@@ -46,6 +46,10 @@ CLinkbot::CLinkbot(const std::string& serialId) :
     mSerialId(boost::to_upper_copy<std::string>(serialId))  
 { }
 
+CLinkbot::CLinkbot() : 
+    Linkbot()
+{ }
+
 void CLinkbot::getAccelerometerData(double &x, double &y, double &z) {
     int timestamp;
     Linkbot::getAccelerometer(timestamp, x, y, z);

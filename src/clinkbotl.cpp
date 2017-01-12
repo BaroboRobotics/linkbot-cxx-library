@@ -32,4 +32,15 @@ CLinkbotL::CLinkbotL(const std::string& serialId)
     }
 }
 
+CLinkbotL::CLinkbotL()
+: CLinkbot()
+{ 
+    // Make sure we are a Linkbot-L
+    LinkbotFormFactor form;
+    getFormFactor(form);
+    if ( form != LINKBOT_FORM_FACTOR_L ) {
+        throw Error("Connected Linkbot is not a Linkbot-L.");
+    }
+}
+
 } // namespace barobo

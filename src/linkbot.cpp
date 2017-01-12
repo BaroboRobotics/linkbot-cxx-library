@@ -54,6 +54,7 @@
 
 namespace barobo {
 
+
 using WebSocketClient = rpc::asio::Client<util::asio::ws::Connector::MessageQueue>;
 using rpc::asio::asyncFire;
 
@@ -211,6 +212,22 @@ public:
         return new Impl{host, service};
     }
 
+    static Impl* fromEnv() {
+        // Get the serial id from the environment
+        auto env_str = std::getenv("ROBOTMANAGER_IDS");
+        if(!env_str) {
+            throw "Environment variable ROBOTMANAGER_IDS not set.";
+        }
+        std::string env{env_str};
+        std::istringstream ss{env};
+        std::string token;
+        _connect_n++;
+        for(int i = 0; i < _connect_n; i++) {
+            std::getline(ss, token, ',');
+        }
+        return fromSerialId(token);
+    }
+
     ~Impl () {
         if (robotRunDone.valid()) {
             try {
@@ -312,7 +329,10 @@ public:
     int moveWaitMask;
     LinkbotFormFactor formFactor;
     std::promise<void> moveWaitPromise;
+    static int _connect_n; // Number of robots connected using the ID-less "connect" function
 };
+
+int Linkbot::Impl::_connect_n = 0;
 
 #if 0
 Linkbot::Linkbot (const std::string& host, const std::string& service) try
@@ -334,6 +354,19 @@ Linkbot::Linkbot (const std::string& id) try
 }
 catch (std::exception& e) {
     throw Error(id + ": " + e.what());
+}
+
+Linkbot::Linkbot () try
+    : m(Linkbot::Impl::fromEnv())
+{
+    // Get the form factor
+    LinkbotFormFactor form;
+    getFormFactor(form);
+    m->formFactor = form;
+    initJointEventCallback();
+}
+catch (std::exception& e) {
+    throw Error(e.what());
 }
 
 Linkbot::~Linkbot () {

@@ -32,6 +32,17 @@ CLinkbotI::CLinkbotI(const std::string& serialId)
     }
 }
 
+CLinkbotI::CLinkbotI()
+: CLinkbot()
+{ 
+    // Make sure we are a Linkbot-I 
+    LinkbotFormFactor form;
+    getFormFactor(form);
+    if ( form != LINKBOT_FORM_FACTOR_I ) {
+        throw Error("Connected Linkbot is not a Linkbot-I.");
+    }
+}
+
 void CLinkbotI::driveAngle(double angle) {
     driveAngleNB(angle);
     moveWait(0x05);

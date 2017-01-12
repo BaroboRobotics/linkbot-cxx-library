@@ -45,6 +45,7 @@ public:
     // Ask the daemon to resolve the given serial ID to a WebSocket host:service,
     // and construct a Linkbot backed by this WebSocket endpoint.
     explicit Linkbot (const std::string& serialId);
+    explicit Linkbot ();
 
     ~Linkbot ();
 
@@ -153,7 +154,8 @@ private:
 
 class CLinkbot : public Linkbot {
 public:
-    explicit CLinkbot (const std::string& serialId = "LOCL");
+    explicit CLinkbot (const std::string& serialId);
+    explicit CLinkbot ();
 
     /* GETTERS */
 
@@ -329,6 +331,7 @@ public:
 
     PlotData _plotData;
 
+
 protected:
     std::string mSerialId;
 };
@@ -370,7 +373,8 @@ private:
 
 class CLinkbotI : public CLinkbot {
 public:
-    explicit CLinkbotI(const std::string& serialId = "LOCL");
+    explicit CLinkbotI(const std::string& serialId);
+    explicit CLinkbotI();
 
     virtual void driveAngle(double angle);
     virtual void driveAngleNB(double angle);
@@ -392,7 +396,8 @@ public:
 
 class CLinkbotL: public CLinkbot {
 public:
-    explicit CLinkbotL(const std::string& serialId = "LOCL");
+    explicit CLinkbotL(const std::string& serialId);
+    explicit CLinkbotL();
 };
 
 template <typename T>
