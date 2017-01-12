@@ -216,7 +216,7 @@ public:
         // Get the serial id from the environment
         auto env_str = std::getenv("ROBOTMANAGER_IDS");
         if(!env_str) {
-            throw "Environment variable ROBOTMANAGER_IDS not set.";
+            throw Error("Environment variable ROBOTMANAGER_IDS not set.");
         }
         std::string env{env_str};
         std::istringstream ss{env};
@@ -224,6 +224,9 @@ public:
         _connect_n++;
         for(int i = 0; i < _connect_n; i++) {
             std::getline(ss, token, ',');
+        }
+        if ( token.length() != 4 ) {
+            throw Error("Insufficient number of robots connected in robot manager.");
         }
         return fromSerialId(token);
     }
