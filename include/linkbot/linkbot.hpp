@@ -146,6 +146,7 @@ public:
         size_t sendsize,
         uint8_t* recvbuf,
         size_t recvsize);
+    virtual void setPeripheralResetMask(int mask, int resetMask);
 
 private:
     struct Impl;
@@ -220,12 +221,10 @@ public:
     virtual void driveAccelToMaxSpeedNB(double radius, double acceleration);
     virtual void driveAccelDistanceNB(double radius, double acceleration, 
             double distance);
-#if 0 // TODO
-    virtual void closeGripper();
-    virtual void closeGripperNB();
     virtual void holdJoint(LinkbotJoint id);
     virtual void holdJoints();
     virtual void holdJointsAtExit();
+#if 0 // TODO
     int isMoving(int mask=0x07);
     int isConnected();
 #endif
@@ -255,10 +254,6 @@ public:
 #endif
     virtual void moveToZero();
     virtual void moveToZeroNB();
-#if 0
-    virtual void openGripper(double angle);
-    virtual void openGripperNB(double angle);
-#endif
     virtual void relaxJoint(LinkbotJoint id);
     virtual void relaxJoints();
     virtual void resetToZero();
@@ -376,6 +371,10 @@ public:
     explicit CLinkbotI(const std::string& serialId);
     explicit CLinkbotI();
 
+    virtual void closeGripper();
+    virtual void closeGripperNB();
+    virtual void openGripper(double angle);
+    virtual void openGripperNB(double angle);
     virtual void driveAngle(double angle);
     virtual void driveAngleNB(double angle);
     virtual void driveBackward(double angle);

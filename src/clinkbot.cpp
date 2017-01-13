@@ -440,6 +440,18 @@ void CLinkbot::driveAccelDistanceNB(double radius, double acceleration,
     driveAccelJointTimeNB(radius, acceleration, timeout);
 }
 
+void CLinkbot::holdJoint(LinkbotJoint id) {
+    Linkbot::move(1<<id, 0, 0, 0);
+}
+
+void CLinkbot::holdJoints() {
+    Linkbot::move(0x07, 0, 0, 0);
+}
+
+void CLinkbot::holdJointsAtExit() {
+    Linkbot::setPeripheralResetMask(0x07, 0);
+}
+
 void CLinkbot::resetToZero() {
     Linkbot::resetEncoderRevs();
     moveTo(0, 0, 0);

@@ -43,6 +43,27 @@ CLinkbotI::CLinkbotI()
     }
 }
 
+void CLinkbotI::closeGripper() {
+    closeGripperNB();
+    moveWait();
+}
+
+void CLinkbotI::closeGripperNB() {
+    Linkbot::setJointStates( 0x05,
+        LINKBOT_JOINT_STATE_POWER, 64, 2, LINKBOT_JOINT_STATE_HOLD,
+        LINKBOT_JOINT_STATE_POWER, 64, 2, LINKBOT_JOINT_STATE_HOLD,
+        LINKBOT_JOINT_STATE_POWER, 64, 2, LINKBOT_JOINT_STATE_HOLD);
+}
+
+void CLinkbotI::openGripper(double angle) {
+    openGripperNB(angle);
+    moveWait();
+}
+
+void CLinkbotI::openGripperNB(double angle) {
+    moveNB(-angle/2.0, 0, -angle/2.0);
+}
+
 void CLinkbotI::driveAngle(double angle) {
     driveAngleNB(angle);
     moveWait(0x05);

@@ -622,6 +622,11 @@ void Linkbot::setJointStates(
                 controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
                 m->setMoving(1<<i);
                 break;
+            case LINKBOT_JOINT_STATE_POWER:
+                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
+                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                m->setMoving(1<<i);
+                break;
             default:
                 break;
         }
@@ -675,6 +680,11 @@ void Linkbot::setJointStates(
             case LINKBOT_JOINT_STATE_MOVING:
                 goalType[i] = barobo_Robot_Goal_Type_INFINITE;
                 controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
+                m->setMoving(1<<i);
+                break;
+            case LINKBOT_JOINT_STATE_POWER:
+                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
+                controllerType[i] = barobo_Robot_Goal_Controller_PID;
                 m->setMoving(1<<i);
                 break;
             default:
@@ -1275,6 +1285,19 @@ void Linkbot::writeReadTwi(
         arg.data.size = sendsize;
         auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
         memcpy(recvbuf, result.data.bytes, result.data.size);
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+}
+
+void Linkbot::setPeripheralResetMask(int mask, int resetMask)
+{
+    try {
+        MethodIn::setResetOnDisconnect arg;
+        arg.mask = mask;
+        arg.peripheralResetMask = resetMask;
+        auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
