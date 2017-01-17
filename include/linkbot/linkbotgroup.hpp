@@ -201,6 +201,21 @@ template<class T> void Group<T>::moveJointWait(LinkbotJoint id)
     }
 }
 
+template<class T> void Group<T>::moveTime(double time)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveTimeNB(time);
+    }
+    moveWait();
+}
+
+template<class T> void Group<T>::moveTimeNB(double time)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveTimeNB(time);
+    }
+}
+
 template<class T> void Group<T>::moveTo(double angle1, double angle2, double angle3)
 {
     moveToNB(angle1, angle2, angle3);

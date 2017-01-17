@@ -396,6 +396,8 @@ public:
     virtual void moveJointTo(LinkbotJoint id, double angle);
     virtual void moveJointToNB(LinkbotJoint id, double angle);
     virtual void moveJointWait(LinkbotJoint id);
+    virtual void moveTime(double time);
+    virtual void moveTimeNB(double time);
     virtual void moveTo(double angle1, double angle2, double angle3);
     virtual void moveToNB(double angle1, double angle2, double angle3);
     virtual void moveWait(int mask=0x07);
