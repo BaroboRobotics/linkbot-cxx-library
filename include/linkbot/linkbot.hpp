@@ -28,6 +28,7 @@
 #include <vector>
 #include <stdint.h>
 
+
 namespace barobo {
 
     using PlotData = std::array< std::vector<double>, 6 >;
@@ -331,41 +332,6 @@ protected:
     std::string mSerialId;
 };
 
-class CLinkbotGroup {
-public:
-    explicit CLinkbotGroup();
-
-    virtual void addRobot(CLinkbot& robot);
-
-    // SETTERS 
-    virtual void setBuzzerFrequencyOn(int frequency);
-    virtual void setBuzzerFrequencyOff();
-    virtual void setJointSpeed(LinkbotJoint id, double speed);
-    virtual void setJointSpeeds(double speed1, double speed2, double speed3);
-    virtual void setJointSpeedRatio(LinkbotJoint id, double ratio);
-    virtual void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
-    virtual void setJointPower(LinkbotJoint id, double power);
-    virtual void setLEDColorRGB(int r, int g, int b);
-    virtual void setMotorPowers(double p1, double p2, double p3);
-    virtual void setSpeed(double speed, double radius);
-
-    // MOVEMENT
-    virtual void move(double j1, double j2, double j3);
-    virtual void moveNB(double j1, double j2, double j3);
-    virtual void moveWait(int mask=0x07);
-    virtual void moveJoint(LinkbotJoint id, double angle);
-    virtual void moveJointNB(LinkbotJoint id, double angle);
-    virtual void moveJointWait(LinkbotJoint id);
-    virtual void moveTo(double angle1, double angle2, double angle3);
-    virtual void moveToNB(double angle1, double angle2, double angle3);
-    virtual void resetToZero();
-    virtual void resetToZeroNB();
-    virtual void stop(int mask = 0x07);
-
-private:
-    std::map<std::string, CLinkbot*> mRobots;
-};
-
 class CLinkbotI : public CLinkbot {
 public:
     explicit CLinkbotI(const std::string& serialId);
@@ -397,6 +363,71 @@ class CLinkbotL: public CLinkbot {
 public:
     explicit CLinkbotL(const std::string& serialId);
     explicit CLinkbotL();
+};
+
+template <class T> class Group {\
+public:
+    virtual void addRobot(T& robot);
+
+    // SETTERS 
+    virtual void setBuzzerFrequencyOn(int frequency);
+    virtual void setBuzzerFrequencyOff();
+    virtual void setJointSpeed(LinkbotJoint id, double speed);
+    virtual void setJointSpeeds(double speed1, double speed2, double speed3);
+    virtual void setJointSpeedRatio(LinkbotJoint id, double ratio);
+    virtual void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
+    virtual void setJointPower(LinkbotJoint id, double power);
+    virtual void setLEDColorRGB(int r, int g, int b);
+    virtual void setMotorPowers(double p1, double p2, double p3);
+    virtual void setSpeed(double speed, double radius);
+
+    // MOVEMENT
+    virtual void move(double j1, double j2, double j3);
+    virtual void moveNB(double j1, double j2, double j3);
+    virtual void moveWait(int mask=0x07);
+    virtual void moveJoint(LinkbotJoint id, double angle);
+    virtual void moveJointNB(LinkbotJoint id, double angle);
+    virtual void moveJointWait(LinkbotJoint id);
+    virtual void moveTo(double angle1, double angle2, double angle3);
+    virtual void moveToNB(double angle1, double angle2, double angle3);
+    virtual void resetToZero();
+    virtual void resetToZeroNB();
+    virtual void stop(int mask = 0x07);
+
+protected:
+    std::map<std::string, T*> mRobots;
+};
+
+template <class T> void Group<T>::addRobot(T& robot)
+{
+    mRobots.insert( std::pair<std::string, T*>( robot._serialId(), &robot ) );
+}
+
+using CLinkbotGroup = Group<CLinkbot>;
+
+class CLinkbotIGroup: public Group<CLinkbotI> {
+public:
+    explicit CLinkbotIGroup();
+
+	void closeGripper();
+	void closeGripperNB();
+	void driveAngle(double angle);
+	void driveAngleNB(double angle);
+	void driveBackward(double angle);
+    void driveBackwardNB(double angle);
+	void driveDistance(double distance, double radius);
+    void driveDistanceNB(double distance, double radius);
+	void driveForeverNB();
+	void driveForward(double angle);
+    void driveForwardNB(double angle);
+	void driveTime(double time);
+	void driveTimeNB(double time);
+	void openGripper(double angle);
+    void openGripperNB(double angle);
+	void turnLeft(double angle, double radius, double tracklength);
+    void turnLeftNB(double angle, double radius, double tracklength);
+    void turnRight(double angle, double radius, double tracklength);
+    void turnRightNB(double angle, double radius, double tracklength);
 };
 
 template <typename T>
@@ -480,5 +511,7 @@ void scatterPlot(T xs, T ys, Args... args) {
 void scatterPlot(PlotData data);
  
 } // barobo
+
+#include "linkbotgroup.hpp"
 
 #endif
