@@ -92,6 +92,27 @@ template<class T> void Group<T>::setSpeed(double speed, double radius)
 
 // Group Movement
 
+template<class T> void Group<T>::holdJoint(LinkbotJoint id)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->holdJoint(id);
+    }
+}
+
+template<class T> void Group<T>::holdJoints()
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->holdJoints();
+    }
+}
+
+template<class T> void Group<T>::holdJointsAtExit()
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->holdJointsAtExit();
+    }
+}
+
 template<class T> void Group<T>::move(double j1, double j2, double j3)
 {
     for ( auto& kv : mRobots ) {
@@ -106,6 +127,50 @@ template<class T> void Group<T>::moveNB(double j1, double j2, double j3)
 {
     for ( auto& kv : mRobots ) {
         kv.second->moveNB(j1, j2, j3);
+    }
+}
+
+template<class T> void Group<T>::moveForeverNB()
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveForeverNB();
+    }
+}
+
+template<class T> void Group<T>::moveJointForeverNB(LinkbotJoint id)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveJointForeverNB(id);
+    }
+}
+
+template<class T> void Group<T>::moveJointTime(LinkbotJoint id, double time)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveJointTimeNB(id, time);
+    }
+    moveWait(1<<id);
+}
+
+template<class T> void Group<T>::moveJointTimeNB(LinkbotJoint id, double time)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveJointTimeNB(id, time);
+    }
+}
+
+template<class T> void Group<T>::moveJointTo(LinkbotJoint id, double angle)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveJointToNB(id, angle);
+    }
+    moveWait();
+}
+
+template<class T> void Group<T>::moveJointToNB(LinkbotJoint id, double angle)
+{
+    for ( auto& kv : mRobots ) {
+        kv.second->moveJointToNB(id, angle);
     }
 }
 

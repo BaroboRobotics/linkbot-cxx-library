@@ -382,14 +382,23 @@ public:
     virtual void setSpeed(double speed, double radius);
 
     // MOVEMENT
+    virtual void holdJoint(LinkbotJoint id);
+    virtual void holdJoints();
+    virtual void holdJointsAtExit();
     virtual void move(double j1, double j2, double j3);
     virtual void moveNB(double j1, double j2, double j3);
-    virtual void moveWait(int mask=0x07);
+    virtual void moveForeverNB();
     virtual void moveJoint(LinkbotJoint id, double angle);
     virtual void moveJointNB(LinkbotJoint id, double angle);
+    virtual void moveJointForeverNB(LinkbotJoint id);
+    virtual void moveJointTime(LinkbotJoint id, double time);
+    virtual void moveJointTimeNB(LinkbotJoint id, double time);
+    virtual void moveJointTo(LinkbotJoint id, double angle);
+    virtual void moveJointToNB(LinkbotJoint id, double angle);
     virtual void moveJointWait(LinkbotJoint id);
     virtual void moveTo(double angle1, double angle2, double angle3);
     virtual void moveToNB(double angle1, double angle2, double angle3);
+    virtual void moveWait(int mask=0x07);
     virtual void resetToZero();
     virtual void resetToZeroNB();
     virtual void stop(int mask = 0x07);
