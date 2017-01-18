@@ -441,6 +441,11 @@ public:
     void turnRightNB(double angle, double radius, double tracklength);
 };
 
+class CLinkbotLGroup: public Group<CLinkbotL> {
+public:
+    explicit CLinkbotLGroup();
+};
+
 template <typename T>
 std::vector<std::tuple<T, T>> pair(T xs, T ys) {
     return {std::make_tuple(xs, ys)};

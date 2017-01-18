@@ -52,6 +52,7 @@ set(sources
     src/clinkbot.cpp
     src/clinkboti.cpp
     src/clinkbotigroup.cpp
+    src/clinkbotlgroup.cpp
     src/clinkbotl.cpp
     src/message.pb.cc
     src/rgbhashtable.c.cpp
