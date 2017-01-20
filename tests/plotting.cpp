@@ -4,9 +4,16 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    std::vector<double> xs = {1,2,3};
-    std::vector<double> ys = {4,5,6};
-    barobo::scatterPlot(xs, ys);
+    std::string serial_id;
+    std::cout << "Enter robot serial id: ";
+    std::cin >> serial_id;
 
+    barobo::CLinkbot linkbot {serial_id};
+    std::vector<double> times[3];
+    std::vector<double> angles[3];
+    linkbot.recordAnglesBegin();
+    linkbot.move(90, 90, 90);
+    auto data = linkbot.recordAnglesEnd();
+    barobo::scatterPlot(data);
     return 0;
 }

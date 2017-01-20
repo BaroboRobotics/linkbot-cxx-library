@@ -29,6 +29,8 @@
 extern "C" {
 #endif
 
+#define LINKBOT_MAX_SPEED 200
+
 enum LinkbotButtonState {
     LINKBOT_BUTTON_STATE_UP,
     LINKBOT_BUTTON_STATE_DOWN
@@ -65,7 +67,8 @@ enum LinkbotJointState {
     LINKBOT_JOINT_STATE_COAST,
     LINKBOT_JOINT_STATE_HOLD,
     LINKBOT_JOINT_STATE_MOVING,
-    LINKBOT_JOINT_STATE_FAILURE = 4
+    LINKBOT_JOINT_STATE_FAILURE = 4,
+    LINKBOT_JOINT_STATE_POWER = 5,
 };
 
 typedef void (*LinkbotButtonEventCallback)(LinkbotButton button, LinkbotButtonState event, int timestamp, void* userData);

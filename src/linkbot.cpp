@@ -54,6 +54,7 @@
 
 namespace barobo {
 
+
 using WebSocketClient = rpc::asio::Client<util::asio::ws::Connector::MessageQueue>;
 using rpc::asio::asyncFire;
 
@@ -211,6 +212,25 @@ public:
         return new Impl{host, service};
     }
 
+    static Impl* fromEnv() {
+        // Get the serial id from the environment
+        auto env_str = std::getenv("ROBOTMANAGER_IDS");
+        if(!env_str) {
+            throw Error("Environment variable ROBOTMANAGER_IDS not set.");
+        }
+        std::string env{env_str};
+        std::istringstream ss{env};
+        std::string token;
+        _connect_n++;
+        for(int i = 0; i < _connect_n; i++) {
+            std::getline(ss, token, ',');
+        }
+        if ( token.length() != 4 ) {
+            throw Error("Insufficient number of robots connected in robot manager.");
+        }
+        return fromSerialId(token);
+    }
+
     ~Impl () {
         if (robotRunDone.valid()) {
             try {
@@ -291,7 +311,7 @@ public:
                 mask &= 0x07;
                 break;
         }
-        isMoving = mask;
+        isMoving |= mask;
     }
 
     std::shared_ptr<util::asio::IoThread> io;
@@ -312,7 +332,10 @@ public:
     int moveWaitMask;
     LinkbotFormFactor formFactor;
     std::promise<void> moveWaitPromise;
+    static int _connect_n; // Number of robots connected using the ID-less "connect" function
 };
+
+int Linkbot::Impl::_connect_n = 0;
 
 #if 0
 Linkbot::Linkbot (const std::string& host, const std::string& service) try
@@ -334,6 +357,19 @@ Linkbot::Linkbot (const std::string& id) try
 }
 catch (std::exception& e) {
     throw Error(id + ": " + e.what());
+}
+
+Linkbot::Linkbot () try
+    : m(Linkbot::Impl::fromEnv())
+{
+    // Get the form factor
+    LinkbotFormFactor form;
+    getFormFactor(form);
+    m->formFactor = form;
+    initJointEventCallback();
+}
+catch (std::exception& e) {
+    throw Error(e.what());
 }
 
 Linkbot::~Linkbot () {
@@ -586,6 +622,11 @@ void Linkbot::setJointStates(
                 controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
                 m->setMoving(1<<i);
                 break;
+            case LINKBOT_JOINT_STATE_POWER:
+                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
+                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                m->setMoving(1<<i);
+                break;
             default:
                 break;
         }
@@ -639,6 +680,11 @@ void Linkbot::setJointStates(
             case LINKBOT_JOINT_STATE_MOVING:
                 goalType[i] = barobo_Robot_Goal_Type_INFINITE;
                 controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
+                m->setMoving(1<<i);
+                break;
+            case LINKBOT_JOINT_STATE_POWER:
+                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
+                controllerType[i] = barobo_Robot_Goal_Controller_PID;
                 m->setMoving(1<<i);
                 break;
             default:
@@ -1239,6 +1285,19 @@ void Linkbot::writeReadTwi(
         arg.data.size = sendsize;
         auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
         memcpy(recvbuf, result.data.bytes, result.data.size);
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+}
+
+void Linkbot::setPeripheralResetMask(int mask, int resetMask)
+{
+    try {
+        MethodIn::setResetOnDisconnect arg;
+        arg.mask = mask;
+        arg.peripheralResetMask = resetMask;
+        auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());

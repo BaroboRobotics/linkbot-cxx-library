@@ -1,3 +1,4 @@
+
 // Copyright (c) 2013-2016 Barobo, Inc.
 //
 // This file is part of liblinkbot.
@@ -16,31 +17,10 @@
 // along with liblinkbot.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <linkbot/linkbot.hpp>
-#include <linkbot/error.hpp>
-#include <math.h>
 
 namespace barobo {
 
-CLinkbotL::CLinkbotL(const std::string& serialId)
-: CLinkbot(serialId)
-{ 
-    // Make sure we are a Linkbot-L
-    LinkbotFormFactor form;
-    getFormFactor(form);
-    if ( form != LINKBOT_FORM_FACTOR_L ) {
-        throw Error("Connected Linkbot is not a Linkbot-L.");
-    }
-}
-
-CLinkbotL::CLinkbotL()
-: CLinkbot()
-{ 
-    // Make sure we are a Linkbot-L
-    LinkbotFormFactor form;
-    getFormFactor(form);
-    if ( form != LINKBOT_FORM_FACTOR_L ) {
-        throw Error("Connected Linkbot is not a Linkbot-L.");
-    }
-}
+CLinkbotLGroup::CLinkbotLGroup()
+{ }
 
 } // namespace barobo

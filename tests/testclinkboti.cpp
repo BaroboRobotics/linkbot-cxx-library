@@ -53,5 +53,27 @@ int main(int argc, char **argv) {
     std::cout << "Turn right 90 degrees..." << std::endl;
     linkbot.turnRight(90, 3.5/2, 3.7);
 
+    std::cout << "accelJointAngleNB(), 360 degrees, 30 deg/s/s\n";
+    linkbot.accelJointAngleNB(LINKBOT_JOINT_ONE, 30, 360);
+    linkbot.moveWait();
+
+    std::cout<< "accelJointTimeNB(), 30 deg/s/s, 4 seconds\n";
+    linkbot.accelJointTimeNB(LINKBOT_JOINT_ONE, 30, 4);
+    linkbot.moveWait();
+
+    std::cout<< "accelJointToVelocityNB(), 30 deg/s/s, 90deg/s\n";
+    linkbot.accelJointToVelocityNB(LINKBOT_JOINT_ONE, 30, 90);
+    sleep_for(seconds(5));
+
+    std::cout<< "driveAccelJointTimeNB(), 3.5inch radius, 3inch/s/s acceleration, 4 seconds\n";
+    linkbot.driveAccelJointTimeNB(3.5, 3, 4);
+    sleep_for(seconds(5));
+
+    std::cout<< "moveForeverNB() for 5 seconds\n";
+    linkbot.moveForeverNB();
+    sleep_for(seconds(5));
+
+    linkbot.stop();
+
     return 0;
 }

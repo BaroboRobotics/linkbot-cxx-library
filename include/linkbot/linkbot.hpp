@@ -28,8 +28,11 @@
 #include <vector>
 #include <stdint.h>
 
+
 namespace barobo {
 
+    using PlotData = std::array< std::vector<double>, 6 >;
+    
 /* A C++03-compatible Linkbot API. */
 class Linkbot {
 public:
@@ -43,6 +46,7 @@ public:
     // Ask the daemon to resolve the given serial ID to a WebSocket host:service,
     // and construct a Linkbot backed by this WebSocket endpoint.
     explicit Linkbot (const std::string& serialId);
+    explicit Linkbot ();
 
     ~Linkbot ();
 
@@ -59,344 +63,387 @@ public:
     // Member functions take angles in degrees.
     // All functions are non-blocking. Use moveWait() to wait for non-blocking
     // movement functions.
-    void getAccelerometer (int& timestamp, double&, double&, double&);
-    std::vector<int> getAdcRaw();
-    void getBatteryVoltage(double& voltage);
-    void getFormFactor(LinkbotFormFactor& form);
-    void getJointAngles (int& timestamp, double&, double&, double&);
-    void getJointSpeeds(double&, double&, double&);
-    void getJointStates(int& timestamp,
+    virtual void getAccelerometer (int& timestamp, double&, double&, double&);
+    virtual std::vector<int> getAdcRaw();
+    virtual void getBatteryVoltage(double& voltage);
+    virtual void getFormFactor(LinkbotFormFactor& form);
+    virtual void getJointAngles (int& timestamp, double&, double&, double&);
+    virtual void getJointSpeeds(double&, double&, double&);
+    virtual void getJointStates(int& timestamp,
                         LinkbotJointState& s1,
                         LinkbotJointState& s2,
                         LinkbotJointState& s3);
-    void getLedColor (int&, int&, int&);
-    void getVersionString (std::string& v);
-    void getSerialId(std::string& serialId);
-    void getJointSafetyThresholds(int&, int&, int&);
-    void getJointSafetyAngles(double&, double&, double&);
+    virtual void getLedColor (int&, int&, int&);
+    virtual void getVersionString (std::string& v);
+    virtual void getSerialId(std::string& serialId);
+    virtual void getJointSafetyThresholds(int&, int&, int&);
+    virtual void getJointSafetyAngles(double&, double&, double&);
 
     /* SETTERS */
-    void resetEncoderRevs();
-    void setBuzzerFrequency (double);
-    void setJointAccelI(int mask, double, double, double);
-    void setJointAccelF(int mask, double, double, double);
-    void setJointSpeeds (int mask, double, double, double);
-    void setJointStates(
+    virtual void resetEncoderRevs();
+    virtual void setBuzzerFrequency (double);
+    virtual void setJointAccelI(int mask, double, double, double);
+    virtual void setJointAccelF(int mask, double, double, double);
+    virtual void setJointSpeeds (int mask, double, double, double);
+    virtual void setJointStates(
         int mask,
         LinkbotJointState s1, double d1,
         LinkbotJointState s2, double d2,
         LinkbotJointState s3, double d3);
-    void setJointStates(
+    virtual void setJointStates(
         int mask,
         LinkbotJointState s1, double d1, double timeout1, LinkbotJointState end1,
         LinkbotJointState s2, double d2, double timeout2, LinkbotJointState end2,
         LinkbotJointState s3, double d3, double timeout3, LinkbotJointState end3
         );
-    void setLedColor (int, int, int);
-    void setJointSafetyThresholds(int mask, int t1=100, int t2=100, int t3=100);
-    void setJointSafetyAngles(int mask, double t1=10, double t2=10, double t3=10);
+    virtual void setLedColor (int, int, int);
+    virtual void setJointSafetyThresholds(int mask, int t1=100, int t2=100, int t3=100);
+    virtual void setJointSafetyAngles(int mask, double t1=10, double t2=10, double t3=10);
 
     /* MOVEMENT */
     // Member functions take angles in degrees.
     // All functions are non-blocking. Use moveWait() to wait for non-blocking
     // movement functions.
-    void drive (int mask, double, double, double);
-    void driveTo (int mask, double, double, double);
-    void move (int mask, double, double, double);
+    virtual void drive (int mask, double, double, double);
+    virtual void driveTo (int mask, double, double, double);
+    virtual void move (int mask, double, double, double);
     // moveContinuous takes three angular speed coefficients. Use -1 to move
     // a motor backward, +1 to move it forward.
-    void moveAccel(int mask, int relativeMask,
+    virtual void moveAccel(int mask, int relativeMask,
         double omega0_i, double timeout0, LinkbotJointState endstate0,
         double omega1_i, double timeout1, LinkbotJointState endstate1,
         double omega2_i, double timeout2, LinkbotJointState endstate2);
-    void moveContinuous (int mask, double, double, double);
-    void moveTo (int mask, double, double, double);
-    void moveSmooth(int mask, int relativeMask, double a0, double a1, double a2);
-    void moveWait(int mask);
-    void motorPower(int mask, int m1, int m2, int m3);
-    void stop (int mask = 0x07);
+    virtual void moveContinuous (int mask, double, double, double);
+    virtual void moveTo (int mask, double, double, double);
+    virtual void moveSmooth(int mask, int relativeMask, double a0, double a1, double a2);
+    virtual void moveWait(int mask);
+    virtual void motorPower(int mask, int m1, int m2, int m3);
+    virtual void stop (int mask = 0x07);
 
     // Passing a null pointer as the first parameter of those three functions
     // will disable its respective events.
-    void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
+    virtual void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
     // cb function params: button, button state, timestamp(millis)
-    void setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)>);
+    virtual void setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)>);
 
-    void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
+    virtual void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
     // cb function params: joint number, angle, timestamp
-    void setEncoderEventCallback (std::function<void(int, double, int)>, double granularity);
+    virtual void setEncoderEventCallback (std::function<void(int, double, int)>, double granularity);
 
-    void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
+    virtual void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
     // cb function params: x, y, z, timestamp
-    void setAccelerometerEventCallback (std::function<void(double, double, double, int)>);
+    virtual void setAccelerometerEventCallback (std::function<void(double, double, double, int)>);
 
-    void setConnectionTerminatedCallback (LinkbotConnectionTerminatedCallback, void* userData);
+    virtual void setConnectionTerminatedCallback (LinkbotConnectionTerminatedCallback, void* userData);
 
     /* MISC */
-    void writeEeprom(uint32_t address, const uint8_t* data, size_t size);
-    void readEeprom(uint32_t address, size_t recvsize, uint8_t* buffer);
-    void writeTwi(uint32_t address, const uint8_t* data, size_t size);
-    void readTwi(uint32_t address, size_t recvsize, uint8_t* buffer);
-    void writeReadTwi(
+    virtual void writeEeprom(uint32_t address, const uint8_t* data, size_t size);
+    virtual void readEeprom(uint32_t address, size_t recvsize, uint8_t* buffer);
+    virtual void writeTwi(uint32_t address, const uint8_t* data, size_t size);
+    virtual void readTwi(uint32_t address, size_t recvsize, uint8_t* buffer);
+    virtual void writeReadTwi(
         uint32_t address,
         const uint8_t* sendbuf,
         size_t sendsize,
         uint8_t* recvbuf,
         size_t recvsize);
+    virtual void setPeripheralResetMask(int mask, int resetMask);
 
 private:
     struct Impl;
     Impl* m;
 };
 
-class CLinkbot {
+class CLinkbot : public Linkbot {
 public:
-    explicit CLinkbot (const std::string& serialId = "LOCL");
+    explicit CLinkbot (const std::string& serialId);
+    explicit CLinkbot ();
 
     /* GETTERS */
 
-    void getAccelerometerData(double &x, double &y, double &z);
-    void getBatteryVoltage(double &voltage);
-    //void getDistance(double &distance, double radius);
-    void getFormFactor(LinkbotFormFactor& form);
-    void getJointAngle(LinkbotJoint id, double &angle);
-    void getJointAngles(double &angle1, double &angle2, double &angle3);
+    virtual void getAccelerometerData(double &x, double &y, double &z);
+    virtual void getBatteryVoltage(double &voltage);
+    virtual void getDistance(double &distance, double radius);
+    virtual void getFormFactor(LinkbotFormFactor& form);
+    virtual void getJointAngle(LinkbotJoint id, double &angle);
+    virtual void getJointAngles(double &angle1, double &angle2, double &angle3);
     //void getJointAngleInstant(LinkbotJoint id, double &angle);
     //void getJointAnglesInstant(double &angle1, double &angle2, double &angle3);
     //void getJointSafetyAngle(double &angle);
     //void getJointSafetyAngleTimeout(double &timeout);
-    void getJointSpeed(LinkbotJoint id, double &speed);
-    void getJointSpeedRatio(LinkbotJoint id, double &ratio);
-    void getJointSpeeds(double &speed1, double &speed2, double &speed3);
-    void getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio3);
-    void getLEDColorRGB(int &r, int &g, int &b);
-    //void getLEDColor(char color[]);
+    virtual void getJointSpeed(LinkbotJoint id, double &speed);
+    virtual void getJointSpeedRatio(LinkbotJoint id, double &ratio);
+    virtual void getJointSpeeds(double &speed1, double &speed2, double &speed3);
+    virtual void getJointSpeedRatios(double &ratio1, double &ratio2, double &ratio3);
+    virtual void getLEDColorRGB(int &r, int &g, int &b);
+    void getLEDColor(char color[]);
 
     /* SETTERS */
-    void setBuzzerFrequency(int frequency, double time);
-    void setBuzzerFrequencyOn(int frequency);
-    void setBuzzerFrequencyOff();
+    virtual void setBuzzerFrequency(int frequency, double time);
+    virtual void setBuzzerFrequencyOn(int frequency);
+    virtual void setBuzzerFrequencyOff();
+    virtual void setJointMovementStateNB(LinkbotJoint id, LinkbotDirection dir);
+    virtual void setJointMovementStateTime(LinkbotJoint id, LinkbotDirection dir, double seconds);
+    virtual void setJointMovementStateTimeNB(LinkbotJoint id, LinkbotDirection dir, double seconds);
     #if 0 //TODO 
-    void setJointMovementStateNB(LinkbotJoint id, robotJointState_t dir);
-    void setJointMovementStateTime(LinkbotJoint id, robotJointState_t dir, double seconds);
-    void setJointMovementStateTimeNB(LinkbotJoint id, robotJointState_t dir, double seconds);
-    void setJointSafetyAngle(double angle);
-    void setJointSafetyAngleTimeout(double timeout);
+    virtual void setJointSafetyAngle(double angle);
+    virtual void setJointSafetyAngleTimeout(double timeout);
     #endif
-    void setJointSpeed(LinkbotJoint id, double speed);
-    void setJointSpeeds(double speed1, double speed2, double speed3);
-    void setJointSpeedRatio(LinkbotJoint id, double ratio);
-    void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
-    void setJointPower(LinkbotJoint id, double power);
-    void setLEDColorRGB(int r, int g, int b);
-    //void setLEDColor(char *color);
-    void setMotorPowers(double p1, double p2, double p3);
-    void setMovementStateNB( LinkbotDirection dir1,
+    virtual void setJointSpeed(LinkbotJoint id, double speed);
+    virtual void setJointSpeeds(double speed1, double speed2, double speed3);
+    virtual void setJointSpeedRatio(LinkbotJoint id, double ratio);
+    virtual void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
+    virtual void setJointPower(LinkbotJoint id, double power);
+    virtual void setLEDColorRGB(int r, int g, int b);
+    void setLEDColor(const char *color);
+    virtual void setMotorPowers(double p1, double p2, double p3);
+    virtual void setMovementStateNB( LinkbotDirection dir1,
             LinkbotDirection dir2,
             LinkbotDirection dir3);
-#if 0 // TODO
-    void setMovementStateTime( robotJointState_t dir1,
-            robotJointState_t dir2,
-            robotJointState_t dir3,
+    virtual void setMovementStateTime( LinkbotDirection dir1,
+            LinkbotDirection dir2,
+            LinkbotDirection dir3,
             double seconds);
-    void setMovementStateTimeNB( robotJointState_t dir1,
-            robotJointState_t dir2,
-            robotJointState_t dir3,
+    virtual void setMovementStateTimeNB( LinkbotDirection dir1,
+            LinkbotDirection dir2,
+            LinkbotDirection dir3,
             double seconds);
-#endif
-    void setSpeed(double speed, double radius);
+    virtual void setSpeed(double speed, double radius);
 
     /* MOVEMENT */
-#if 0 // TODO
-    void accelJointAngleNB(LinkbotJoint id, double acceleration, double angle);
-    void accelJointTimeNB(LinkbotJoint id, double acceleration, double time);
-    void accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed);
-    void accelJointToMaxSpeedNB(LinkbotJoint id, double acceleration);
-    void driveAccelJointTimeNB(double radius, double acceleration,
+    virtual void accelJointAngleNB(LinkbotJoint id, double acceleration, double angle);
+    virtual void accelJointTimeNB(LinkbotJoint id, double acceleration, double time);
+    virtual void accelJointToVelocityNB(LinkbotJoint id, double acceleration, double speed);
+    virtual void accelJointToMaxSpeedNB(LinkbotJoint id, double acceleration);
+    virtual void driveAccelJointTimeNB(double radius, double acceleration,
             double time);
-    void driveAccelToVelocityNB(double radius, double acceleration,
+    virtual void driveAccelToVelocityNB(double radius, double acceleration,
             double velocity);
-    void driveAccelToMaxSpeedNB(double radius, double acceleration);
-    void driveAccelDistanceNB(double radius, double acceleration, 
+    virtual void driveAccelToMaxSpeedNB(double radius, double acceleration);
+    virtual void driveAccelDistanceNB(double radius, double acceleration, 
             double distance);
-    void closeGripper();
-    void closeGripperNB();
-    void holdJoint(LinkbotJoint id);
-    void holdJoints();
-    void holdJointsAtExit();
+    virtual void holdJoint(LinkbotJoint id);
+    virtual void holdJoints();
+    virtual void holdJointsAtExit();
+#if 0 // TODO
     int isMoving(int mask=0x07);
     int isConnected();
 #endif
-    void move(double j1, double j2, double j3);
-    void moveNB(double j1, double j2, double j3);
-    void moveWait(int mask=0x07);
+    virtual void move(double j1, double j2, double j3);
+    virtual void moveNB(double j1, double j2, double j3);
+    virtual void moveWait(int mask=0x07);
+    virtual void moveForeverNB();
+    virtual void moveJoint(LinkbotJoint id, double angle);
+    virtual void moveJointNB(LinkbotJoint id, double angle);
+    virtual void moveJointForeverNB(LinkbotJoint id);
+    virtual void moveJointTime(LinkbotJoint id, double time);
+    virtual void moveJointTimeNB(LinkbotJoint id, double time);
+    virtual void moveJointTo(LinkbotJoint id, double angle);
+    virtual void moveJointToNB(LinkbotJoint id, double angle);
+#if 0
+    virtual void moveJointToByTrackPos(LinkbotJoint id, double angle);
+    virtual void moveJointToByTrackPosNB(LinkbotJoint id, double angle);
+#endif
+    virtual void moveJointWait(LinkbotJoint id);
+    virtual void moveTime(double time);
+    virtual void moveTimeNB(double time);
+    virtual void moveTo(double angle1, double angle2, double angle3);
+    virtual void moveToNB(double angle1, double angle2, double angle3);
 #if 0 // TODO
-    void moveForeverNB();
+    virtual void moveToByTrackPos(double angle1, double angle2, double angle3);
+    virtual void moveToByTrackPosNB(double angle1, double angle2, double angle3);
 #endif
-    void moveJoint(LinkbotJoint id, double angle);
-    void moveJointNB(LinkbotJoint id, double angle);
-#if 0
-    void moveJointForeverNB(LinkbotJoint id);
-    void moveJointTime(LinkbotJoint id, double time);
-    void moveJointTimeNB(LinkbotJoint id, double time);
-    void moveJointTo(LinkbotJoint id, double angle);
-    void moveJointToNB(LinkbotJoint id, double angle);
-    void moveJointToByTrackPos(LinkbotJoint id, double angle);
-    void moveJointToByTrackPosNB(LinkbotJoint id, double angle);
-#endif
-    void moveJointWait(LinkbotJoint id);
-#if 0
-    void moveTime(double time);
-    void moveTimeNB(double time);
-#endif
-    void moveTo(double angle1, double angle2, double angle3);
-    void moveToNB(double angle1, double angle2, double angle3);
-#if 0 // TODO
-    void moveToByTrackPos(double angle1, double angle2, double angle3);
-    void moveToByTrackPosNB(double angle1, double angle2, double angle3);
-    void moveToZero();
-    void moveToZeroNB();
-    void openGripper(double angle);
-    void openGripperNB(double angle);
-    void relaxJoint(LinkbotJoint id);
-    void relaxJoints();
-#endif
-    void resetToZero();
-    void resetToZeroNB();
-    void stop(int mask = 0x07);
-#if 0
-    void stopOneJoint(LinkbotJoint id);
-#endif
+    virtual void moveToZero();
+    virtual void moveToZeroNB();
+    virtual void relaxJoint(LinkbotJoint id);
+    virtual void relaxJoints();
+    virtual void resetToZero();
+    virtual void resetToZeroNB();
+    virtual void stop(int mask = 0x07);
+    virtual void stopOneJoint(LinkbotJoint id);
 
     /* CALLBACKS */
     // Passing a null pointer as the first parameter of those three functions
     // will disable its respective events.
-    void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
-    void setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)>);
+    virtual void setButtonEventCallback (LinkbotButtonEventCallback, void* userData);
+    virtual void setButtonEventCallback (std::function<void(LinkbotButton, LinkbotButtonState, int)>);
 
-    void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
-    void setEncoderEventCallback (std::function<void(int, double, int)>, double granularity);
+    virtual void setEncoderEventCallback (LinkbotEncoderEventCallback, double granularity, void* userData);
+    virtual void setEncoderEventCallback (std::function<void(int, double, int)>, double granularity);
 
-    void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
-    void setAccelerometerEventCallback (std::function<void(double, double, double, int)>);
+    virtual void setAccelerometerEventCallback (LinkbotAccelerometerEventCallback, void* userData);
+    virtual void setAccelerometerEventCallback (std::function<void(double, double, double, int)>);
 
     /* MISC */
-    void delaySeconds(double seconds);
+    virtual void delaySeconds(double seconds);
 
 #if 0
     /*
-    void enableButtonCallback(void* userdata, void (*buttonCallback)(void* data, int button, int buttonDown));
-    void disableButtonCallback();
+    virtual void enableButtonCallback(void* userdata, void (*buttonCallback)(void* data, int button, int buttonDown));
+    virtual void disableButtonCallback();
     */
-    void blinkLED(double delay, int numBlinks);
-    void recordAnglesBegin(
-        robotRecordData_t &time,
-        robotRecordData_t &angle1,
-        robotRecordData_t &angle2,
-        robotRecordData_t &angle3,
-        double timeInterval = 0.1,
-        int mask = 0x07,
-        int shiftData = 1);
-    void recordAnglesEnd(int &num);
-    void recordDistanceBegin(
+    virtual void blinkLED(double delay, int numBlinks);
+#endif
+    virtual void recordAnglesBegin(
+    //  double timeInterval = 0.1,
+    //  int mask = 0x07,
+    //  int shiftData = 1
+    );
+    PlotData recordAnglesEnd();
+#if 0
+    virtual void recordDistanceBegin(
         LinkbotJoint id,
         robotRecordData_t &time,
         robotRecordData_t &distance,
         double radius,
         double timeInterval = 0.1,
         int shiftData = 1);
-    void recordDistanceEnd(LinkbotJoint id, int &num);
+    virtual void recordDistanceEnd(LinkbotJoint id, int &num);
 
-    void recordAnglesBegin2(
+    virtual void recordAnglesBegin2(
         robotRecordData_t &time,
         robotRecordData_t &angle1,
         robotRecordData_t &angle2,
         robotRecordData_t &angle3,
         int shiftData = 1);
-    void recordAnglesEnd2(int &num);
-    void recordDistanceBegin2(
+    virtual void recordAnglesEnd2(int &num);
+    virtual void recordDistanceBegin2(
         LinkbotJoint id,
         robotRecordData_t &time,
         robotRecordData_t &distance,
         double radius,
         int shiftData = 1);
-    void recordDistanceEnd2(LinkbotJoint id, int &num);
-    void recordDistanceOffset(double distance);
-    void recordNoDataShift();
-    void enableRecordDataShift();
-    void disableRecordDataShift();
-    void delaySeconds(int seconds);
-    void systemTime(double &time);
+    virtual void recordDistanceEnd2(LinkbotJoint id, int &num);
+    virtual void recordDistanceOffset(double distance);
+    virtual void recordNoDataShift();
+    virtual void enableRecordDataShift();
+    virtual void disableRecordDataShift();
+    virtual void delaySeconds(int seconds);
+    virtual void systemTime(double &time);
 
 #endif // TODO
 
     std::string _serialId() { return mSerialId; }
 
+    PlotData _plotData;
+
+
 protected:
-    Linkbot _l;
     std::string mSerialId;
-};
-
-class CLinkbotGroup {
-public:
-    explicit CLinkbotGroup();
-
-    void addRobot(CLinkbot& robot);
-
-    // SETTERS 
-    void setBuzzerFrequencyOn(int frequency);
-    void setBuzzerFrequencyOff();
-    void setJointSpeed(LinkbotJoint id, double speed);
-    void setJointSpeeds(double speed1, double speed2, double speed3);
-    void setJointSpeedRatio(LinkbotJoint id, double ratio);
-    void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
-    void setJointPower(LinkbotJoint id, double power);
-    void setLEDColorRGB(int r, int g, int b);
-    void setMotorPowers(double p1, double p2, double p3);
-    void setSpeed(double speed, double radius);
-
-    // MOVEMENT
-    void move(double j1, double j2, double j3);
-    void moveNB(double j1, double j2, double j3);
-    void moveWait(int mask=0x07);
-    void moveJoint(LinkbotJoint id, double angle);
-    void moveJointNB(LinkbotJoint id, double angle);
-    void moveJointWait(LinkbotJoint id);
-    void moveTo(double angle1, double angle2, double angle3);
-    void moveToNB(double angle1, double angle2, double angle3);
-    void resetToZero();
-    void resetToZeroNB();
-    void stop(int mask = 0x07);
-
-private:
-    std::map<std::string, CLinkbot*> mRobots;
 };
 
 class CLinkbotI : public CLinkbot {
 public:
-    explicit CLinkbotI(const std::string& serialId = "LOCL");
+    explicit CLinkbotI(const std::string& serialId);
+    explicit CLinkbotI();
 
-    void driveAngle(double angle);
-    void driveAngleNB(double angle);
-    void driveBackward(double angle);
-    void driveBackwardNB(double angle);
-    void driveDistance(double distance, double radius);
-    void driveDistanceNB(double distance, double radius);
-    void driveForeverNB();
-    void driveForward(double angle);
-    void driveForwardNB(double angle);
-    void driveTime(double time);
-    void driveTimeNB(double time);
-    void turnLeft(double angle, double radius, double tracklength);
-    void turnLeftNB(double angle, double radius, double tracklength);
-    void turnRight(double angle, double radius, double tracklength);
-    void turnRightNB(double angle, double radius, double tracklength);
+    virtual void closeGripper();
+    virtual void closeGripperNB();
+    virtual void openGripper(double angle);
+    virtual void openGripperNB(double angle);
+    virtual void driveAngle(double angle);
+    virtual void driveAngleNB(double angle);
+    virtual void driveBackward(double angle);
+    virtual void driveBackwardNB(double angle);
+    virtual void driveDistance(double distance, double radius);
+    virtual void driveDistanceNB(double distance, double radius);
+    virtual void driveForeverNB();
+    virtual void driveForward(double angle);
+    virtual void driveForwardNB(double angle);
+    virtual void driveTime(double time);
+    virtual void driveTimeNB(double time);
+    virtual void turnLeft(double angle, double radius, double tracklength);
+    virtual void turnLeftNB(double angle, double radius, double tracklength);
+    virtual void turnRight(double angle, double radius, double tracklength);
+    virtual void turnRightNB(double angle, double radius, double tracklength);
 
 };
 
 class CLinkbotL: public CLinkbot {
 public:
-    explicit CLinkbotL(const std::string& serialId = "LOCL");
+    explicit CLinkbotL(const std::string& serialId);
+    explicit CLinkbotL();
+};
+
+template <class T> class Group {\
+public:
+    virtual void addRobot(T& robot);
+
+    // SETTERS 
+    virtual void setBuzzerFrequencyOn(int frequency);
+    virtual void setBuzzerFrequencyOff();
+    virtual void setJointSpeed(LinkbotJoint id, double speed);
+    virtual void setJointSpeeds(double speed1, double speed2, double speed3);
+    virtual void setJointSpeedRatio(LinkbotJoint id, double ratio);
+    virtual void setJointSpeedRatios(double ratios1, double ratios2, double ratios3);
+    virtual void setJointPower(LinkbotJoint id, double power);
+    virtual void setLEDColorRGB(int r, int g, int b);
+    virtual void setMotorPowers(double p1, double p2, double p3);
+    virtual void setSpeed(double speed, double radius);
+
+    // MOVEMENT
+    virtual void holdJoint(LinkbotJoint id);
+    virtual void holdJoints();
+    virtual void holdJointsAtExit();
+    virtual void move(double j1, double j2, double j3);
+    virtual void moveNB(double j1, double j2, double j3);
+    virtual void moveForeverNB();
+    virtual void moveJoint(LinkbotJoint id, double angle);
+    virtual void moveJointNB(LinkbotJoint id, double angle);
+    virtual void moveJointForeverNB(LinkbotJoint id);
+    virtual void moveJointTime(LinkbotJoint id, double time);
+    virtual void moveJointTimeNB(LinkbotJoint id, double time);
+    virtual void moveJointTo(LinkbotJoint id, double angle);
+    virtual void moveJointToNB(LinkbotJoint id, double angle);
+    virtual void moveJointWait(LinkbotJoint id);
+    virtual void moveTime(double time);
+    virtual void moveTimeNB(double time);
+    virtual void moveTo(double angle1, double angle2, double angle3);
+    virtual void moveToNB(double angle1, double angle2, double angle3);
+    virtual void moveWait(int mask=0x07);
+    virtual void resetToZero();
+    virtual void resetToZeroNB();
+    virtual void stop(int mask = 0x07);
+
+protected:
+    std::map<std::string, T*> mRobots;
+};
+
+template <class T> void Group<T>::addRobot(T& robot)
+{
+    mRobots.insert( std::pair<std::string, T*>( robot._serialId(), &robot ) );
+}
+
+using CLinkbotGroup = Group<CLinkbot>;
+
+class CLinkbotIGroup: public Group<CLinkbotI> {
+public:
+    explicit CLinkbotIGroup();
+
+	void closeGripper();
+	void closeGripperNB();
+	void driveAngle(double angle);
+	void driveAngleNB(double angle);
+	void driveBackward(double angle);
+    void driveBackwardNB(double angle);
+	void driveDistance(double distance, double radius);
+    void driveDistanceNB(double distance, double radius);
+	void driveForeverNB();
+	void driveForward(double angle);
+    void driveForwardNB(double angle);
+	void driveTime(double time);
+	void driveTimeNB(double time);
+	void openGripper(double angle);
+    void openGripperNB(double angle);
+	void turnLeft(double angle, double radius, double tracklength);
+    void turnLeftNB(double angle, double radius, double tracklength);
+    void turnRight(double angle, double radius, double tracklength);
+    void turnRightNB(double angle, double radius, double tracklength);
+};
+
+class CLinkbotLGroup: public Group<CLinkbotL> {
+public:
+    explicit CLinkbotLGroup();
 };
 
 template <typename T>
@@ -477,6 +524,10 @@ void scatterPlot(T xs, T ys, Args... args) {
     sendToPrex(buffer.str());
 }
 
+void scatterPlot(PlotData data);
+ 
 } // barobo
+
+#include "linkbotgroup.hpp"
 
 #endif

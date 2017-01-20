@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2.1)
-project(liblinkbot VERSION 0.3.1 LANGUAGES CXX C)
+project(liblinkbot VERSION 0.3.2 LANGUAGES CXX C)
 
 set(preRelease "")
 # Examples: dev, rc.0, rc.1, some-feature-branch-name
@@ -51,8 +51,11 @@ set(sources
     src/linkbot.c.cpp
     src/clinkbot.cpp
     src/clinkboti.cpp
+    src/clinkbotigroup.cpp
+    src/clinkbotlgroup.cpp
     src/clinkbotl.cpp
     src/message.pb.cc
+    src/rgbhashtable.c.cpp
 )
 
 add_library(linkbot ${sources})
