@@ -29,6 +29,7 @@
 //#include <util/asio/use_future.hpp>
 #include <util/asio/ws/connector.hpp>
 
+#include <util/math.hpp>
 #include <util/log.hpp>
 #include <util/global.hpp>
 
@@ -49,9 +50,6 @@
 
 #include <boost/asio/yield.hpp>
 
-#undef M_PI
-#define M_PI 3.14159265358979323846
-
 namespace barobo {
 
 
@@ -61,12 +59,6 @@ using rpc::asio::asyncFire;
 namespace {
 
 auto use_future = boost::asio::use_future_t<std::allocator<char>>{};
-
-template <class T>
-T degToRad (T x) { return T(double(x) * M_PI / 180.0); }
-
-template <class T>
-T radToDeg (T x) { return T(double(x) * 180.0 / M_PI); }
 
 std::string daemonHostName () {
     return "127.0.0.1";
@@ -255,7 +247,7 @@ public:
 
     void onBroadcast (Broadcast::encoderEvent b) {
         if (encoderEventCallback) {
-            encoderEventCallback(b.encoder, radToDeg(b.value), b.timestamp);
+            encoderEventCallback(b.encoder, util::radToDeg(b.value), b.timestamp);
         }
     }
 
@@ -452,9 +444,9 @@ void Linkbot::getJointAngles (int& timestamp, double& a0, double& a1, double& a2
     try {
         auto values = asyncFire(m->robot, MethodIn::getEncoderValues{}, requestTimeout(), use_future).get();
         assert(values.values_count >= 3);
-        a0 = radToDeg(values.values[0]);
-        a1 = radToDeg(values.values[1]);
-        a2 = radToDeg(values.values[2]);
+        a0 = util::radToDeg(values.values[0]);
+        a1 = util::radToDeg(values.values[1]);
+        a2 = util::radToDeg(values.values[2]);
         timestamp = values.timestamp;
     }
     catch (std::exception& e) {
@@ -467,9 +459,9 @@ void Linkbot::getJointSpeeds(double& s1, double& s2, double& s3)
     try {
         auto values = asyncFire(m->robot, MethodIn::getMotorControllerOmega{}, requestTimeout(), use_future).get();
         assert(values.values_count >= 3);
-        s1 = radToDeg(values.values[0]);
-        s2 = radToDeg(values.values[1]);
-        s3 = radToDeg(values.values[2]);
+        s1 = util::radToDeg(values.values[0]);
+        s2 = util::radToDeg(values.values[1]);
+        s3 = util::radToDeg(values.values[2]);
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -537,9 +529,9 @@ void Linkbot::getJointSafetyAngles(double& t1, double& t2, double& t3)
         auto value = asyncFire(m->robot,
             MethodIn::getMotorControllerSafetyAngle{},
             requestTimeout(), use_future).get();
-        t1 = radToDeg(double(value.values[0]));
-        t2 = radToDeg(double(value.values[1]));
-        t3 = radToDeg(double(value.values[2]));
+        t1 = util::radToDeg(double(value.values[0]));
+        t2 = util::radToDeg(double(value.values[1]));
+        t3 = util::radToDeg(double(value.values[2]));
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -581,7 +573,7 @@ void Linkbot::setJointSpeeds (int mask, double s0, double s1, double s2) {
         int jointFlag = 0x01;
         for (auto& s : { s0, s1, s2 }) {
             if (jointFlag & mask) {
-                arg.values[arg.values_count++] = float(degToRad(s));
+                arg.values[arg.values_count++] = float(util::degToRad(s));
             }
             jointFlag <<= 1;
         }
@@ -637,9 +629,9 @@ void Linkbot::setJointStates(
     }
     try {
         asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { goalType[0], coefficients[0], true, controllerType[0] },
-            bool(mask&0x02), { goalType[1], coefficients[1], true, controllerType[1] },
-            bool(mask&0x04), { goalType[2], coefficients[2], true, controllerType[2] }
+            bool(mask&0x01), { true, goalType[0], true, coefficients[0], true, controllerType[0] },
+            bool(mask&0x02), { true, goalType[1], true, coefficients[1], true, controllerType[1] },
+            bool(mask&0x04), { true, goalType[2], true, coefficients[2], true, controllerType[2] }
         }, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
@@ -764,7 +756,7 @@ void Linkbot::setJointSafetyAngles(int mask, double t0, double t1, double t2) {
         int jointFlag = 0x01;
         for (auto& t : { t0, t1, t2 }) {
             if (jointFlag & mask) {
-                arg.values[arg.values_count++] = float(degToRad(t));
+                arg.values[arg.values_count++] = float(util::degToRad(t));
             }
             jointFlag <<= 1;
         }
@@ -786,7 +778,7 @@ void Linkbot::setJointAccelI(
         int jointFlag = 0x01;
         for (auto& s : { a0, a1, a2 }) {
             if (jointFlag & mask) {
-                arg.values[arg.values_count++] = float(degToRad(s));
+                arg.values[arg.values_count++] = float(util::degToRad(s));
             }
             jointFlag <<= 1;
         }
@@ -808,7 +800,7 @@ void Linkbot::setJointAccelF(
         int jointFlag = 0x01;
         for (auto& s : { a0, a1, a2 }) {
             if (jointFlag & mask) {
-                arg.values[arg.values_count++] = float(degToRad(s));
+                arg.values[arg.values_count++] = float(util::degToRad(s));
             }
             jointFlag <<= 1;
         }
@@ -826,17 +818,17 @@ void Linkbot::drive (int mask, double a0, double a1, double a2)
         m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(degToRad(a0)),
+                               float(util::degToRad(a0)),
                                true,
                                barobo_Robot_Goal_Controller_PID
                              },
             bool(mask&0x02), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(degToRad(a1)),
+                               float(util::degToRad(a1)),
                                true,
                                barobo_Robot_Goal_Controller_PID
                              },
             bool(mask&0x04), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(degToRad(a2)),
+                               float(util::degToRad(a2)),
                                true,
                                barobo_Robot_Goal_Controller_PID
                              }
@@ -853,17 +845,17 @@ void Linkbot::driveTo (int mask, double a0, double a1, double a2)
         m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_ABSOLUTE,
-                               float(degToRad(a0)),
+                               float(util::degToRad(a0)),
                                true,
                                barobo_Robot_Goal_Controller_PID
                              },
             bool(mask&0x02), { barobo_Robot_Goal_Type_ABSOLUTE,
-                               float(degToRad(a1)),
+                               float(util::degToRad(a1)),
                                true,
                                barobo_Robot_Goal_Controller_PID
                              },
             bool(mask&0x04), { barobo_Robot_Goal_Type_ABSOLUTE,
-                               float(degToRad(a2)),
+                               float(util::degToRad(a2)),
                                true,
                                barobo_Robot_Goal_Controller_PID
                              }
@@ -879,13 +871,13 @@ void Linkbot::move (int mask, double a0, double a1, double a2) {
         m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(degToRad(a0)),
+                               float(util::degToRad(a0)),
                                false},
             bool(mask&0x02), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(degToRad(a1)),
+                               float(util::degToRad(a1)),
                                false},
             bool(mask&0x04), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(degToRad(a2)),
+                               float(util::degToRad(a2)),
                                false}
         }, requestTimeout(), use_future).get();
     }
@@ -943,21 +935,21 @@ void Linkbot::moveAccel(int mask, int relativeMask,
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), {
                 motionType[0],
-                float(degToRad(omega0_i)),
+                float(util::degToRad(omega0_i)),
                 true,
                 barobo_Robot_Goal_Controller_ACCEL,
                 hasTimeouts[0], float(timeout0), hasTimeouts[0], js_to_int(endstate0)
                 },
             bool(mask&0x02), {
                 motionType[1],
-                float(degToRad(omega1_i)),
+                float(util::degToRad(omega1_i)),
                 true,
                 barobo_Robot_Goal_Controller_ACCEL,
                 hasTimeouts[1], float(timeout1), hasTimeouts[1], js_to_int(endstate1)
                 },
             bool(mask&0x04), {
                 motionType[2],
-                float(degToRad(omega2_i)),
+                float(util::degToRad(omega2_i)),
                 true,
                 barobo_Robot_Goal_Controller_ACCEL,
                 hasTimeouts[2], float(timeout2), hasTimeouts[2], js_to_int(endstate2)
@@ -985,19 +977,19 @@ void Linkbot::moveSmooth(int mask, int relativeMask, double a0, double a1, doubl
         asyncFire(m->robot, MethodIn::move {
             bool(mask&0x01), {
                 motionType[0],
-                float(degToRad(a0)),
+                float(util::degToRad(a0)),
                 true,
                 barobo_Robot_Goal_Controller_SMOOTH
                 },
             bool(mask&0x02), {
                 motionType[1],
-                float(degToRad(a1)),
+                float(util::degToRad(a1)),
                 true,
                 barobo_Robot_Goal_Controller_SMOOTH
                 },
             bool(mask&0x04), {
                 motionType[2],
-                float(degToRad(a2)),
+                float(util::degToRad(a2)),
                 true,
                 barobo_Robot_Goal_Controller_SMOOTH
                 }
@@ -1012,9 +1004,9 @@ void Linkbot::moveTo (int mask, double a0, double a1, double a2) {
     try {
         m->setMoving(mask);
         asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { barobo_Robot_Goal_Type_ABSOLUTE, float(degToRad(a0)) },
-            bool(mask&0x02), { barobo_Robot_Goal_Type_ABSOLUTE, float(degToRad(a1)) },
-            bool(mask&0x04), { barobo_Robot_Goal_Type_ABSOLUTE, float(degToRad(a2)) }
+            bool(mask&0x01), { barobo_Robot_Goal_Type_ABSOLUTE, float(util::degToRad(a0)) },
+            bool(mask&0x02), { barobo_Robot_Goal_Type_ABSOLUTE, float(util::degToRad(a1)) },
+            bool(mask&0x04), { barobo_Robot_Goal_Type_ABSOLUTE, float(util::degToRad(a2)) }
         }, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
@@ -1153,7 +1145,7 @@ void Linkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb,
                                        double granularity, void* userData)
 {
     const bool enable = !!cb;
-    granularity = degToRad(granularity);
+    granularity = util::degToRad(granularity);
 
     try {
         asyncFire(m->robot, MethodIn::enableEncoderEvent {
