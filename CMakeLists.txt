@@ -43,7 +43,6 @@ find_package(Boost 1.59.0 REQUIRED COMPONENTS system log_setup log filesystem th
 
 find_package(cxx-util)
 find_package(linkbot-interfaces)
-find_package(ribbon-bridge)
 find_package(protobuf REQUIRED CONFIG NAMES protobuf)
 
 set(sources
@@ -65,8 +64,13 @@ message("LINKING WITH: ${Protobuf_VERSION}")
 
 target_link_libraries(linkbot
     PUBLIC
-        barobo::rpc barobo::cxx-util barobo::robot-interface barobo::daemon-interface
-        Boost::filesystem Boost::system Boost::log Boost::thread
+        barobo::cxx-util
+        barobo::daemon-proto
+        barobo::robot-proto
+        Boost::filesystem
+        Boost::system
+        Boost::log
+        Boost::thread
         ${Protobuf_LIBRARY}
 )
 
