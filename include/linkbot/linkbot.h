@@ -142,6 +142,7 @@ LIBLINKBOT_EXPORT int linkbotMoveContinuous(Linkbot* l, int mask,
                           double d1,
                           double d2,
                           double d3);
+LIBLINKBOT_EXPORT int linkbotMoveWait(Linkbot*, int mask);
 LIBLINKBOT_EXPORT int linkbotDrive(Linkbot*, int mask, double j1, double j2, double j3);
 LIBLINKBOT_EXPORT int linkbotDriveTo(Linkbot*, int mask, double j1, double j2, double j3);
 LIBLINKBOT_EXPORT int linkbotMotorPower(Linkbot*, int mask, int m1, int m2, int m3);

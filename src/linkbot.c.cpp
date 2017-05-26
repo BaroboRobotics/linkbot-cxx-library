@@ -265,6 +265,11 @@ int linkbotMoveContinuous(Linkbot* l, int mask,
     LINKBOT_C_WRAPPER_FUNC_IMPL(moveContinuous, mask, d1, d2, d3);
 }
 
+int linkbotMoveWait(Linkbot* l, int mask)
+{
+    LINKBOT_C_WRAPPER_FUNC_IMPL(moveWait, mask);
+}
+
 int linkbotWriteEeprom(Linkbot* l, unsigned int address, const char *data, unsigned int size)
 {
     LINKBOT_C_WRAPPER_FUNC_IMPL(writeEeprom, uint32_t(address), (uint8_t*)(data), size_t(size));
@@ -332,6 +337,23 @@ int linkbotSetEncoderEventCallback(Linkbot* l,
     }
     try {
         l->impl.setEncoderEventCallback(cb, granularity, userData);
+        return 0;
+    }
+    catch (std::exception& e) {
+        fprintf(stderr, "Runtime exception: %s\n", e.what());
+        return -1;
+    }
+}
+
+int linkbotSetJointEventCallback(Linkbot* l,
+                                 LinkbotJointEventCallback cb,
+                                 void* userData)
+{
+    if (!l) {
+        return -1;
+    }
+    try {
+        l->impl.setJointEventCallback(cb, userData);
         return 0;
     }
     catch (std::exception& e) {

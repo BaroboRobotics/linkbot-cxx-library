@@ -134,6 +134,9 @@ public:
     // cb function params: x, y, z, timestamp
     virtual void setAccelerometerEventCallback (std::function<void(double, double, double, int)>);
 
+    virtual void setJointEventCallback(LinkbotJointEventCallback, void* userData);
+    virtual void setJointEventCallback(std::function<void(int, LinkbotJointState, int)>);
+
     virtual void setConnectionTerminatedCallback (LinkbotConnectionTerminatedCallback, void* userData);
 
     /* MISC */

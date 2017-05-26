@@ -271,6 +271,10 @@ public:
 
     void _onJointEvent(int joint, LinkbotJointState event, int timestamp)
     {
+        if (jointEventCallback) {
+            jointEventCallback(joint, event, timestamp);
+            return;
+        }
         switch(event) {
             case LINKBOT_JOINT_STATE_COAST:
                 // intentional fall-through
@@ -1191,6 +1195,42 @@ void Linkbot::setEncoderEventCallback (std::function<void(int, double, int)> cb,
     }
     else {
         m->encoderEventCallback = nullptr;
+    }
+}
+
+void Linkbot::setJointEventCallback (LinkbotJointEventCallback cb, void* userData) {
+    const bool enable = !!cb;
+
+    try {
+        asyncFire(m->robot, MethodIn::enableJointEvent{enable}, requestTimeout(), use_future).get();
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+
+    if (enable) {
+        m->jointEventCallback = std::bind(cb, _1, _2, _3, userData);
+    }
+    else {
+        m->jointEventCallback = nullptr;
+    }
+}
+
+void Linkbot::setJointEventCallback (std::function<void(int, LinkbotJointState, int)> cb) {
+    const bool enable = !!cb;
+
+    try {
+        asyncFire(m->robot, MethodIn::enableJointEvent{enable}, requestTimeout(), use_future).get();
+    }
+    catch (std::exception& e) {
+        throw Error(e.what());
+    }
+
+    if (enable) {
+        m->jointEventCallback = cb;
+    }
+    else {
+        m->jointEventCallback = nullptr;
     }
 }
 
