@@ -21,14 +21,16 @@
 #include <cstdlib>
 #include <thread>
 
-
 #include <util/asio/iothread.hpp>
-#include <util/asio/ws/acceptor.hpp>
-#include <util/asio/ws/connector.hpp>
 #include <util/global.hpp>
+#include <util/log.hpp>
+
+#include <beast/websocket.hpp>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/asio/use_future.hpp>
+
+#include <boost/convert.hpp>
+#include <boost/convert/lexical_cast.hpp>
 
 #include "message.pb.h"
 
@@ -40,6 +42,8 @@
 using std::this_thread::sleep_for;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
+
+struct boost::cnv::by_default: boost::cnv::lexical_cast {};
 
 namespace barobo {
 
@@ -640,9 +644,12 @@ PlotData CLinkbot::recordAnglesEnd()
 void sendToPrex(std::string json) {
     auto ioThread = util::global<util::asio::IoThread>();
     auto host = "localhost";
-    auto service = std::getenv("PREX_IPC_PORT");
+    uint16_t portNo;
 
-    if(!service) {
+    try {
+        portNo = boost::convert<uint16_t>(std::getenv("PREX_IPC_PORT")).value();
+    }
+    catch (const boost::bad_optional_access&) {
         return;
     }
 
@@ -658,25 +665,23 @@ void sendToPrex(std::string json) {
     std::ostringstream msg_buffer;
     msg.SerializeToOstream(&msg_buffer);
 
-    auto connector = util::asio::ws::Connector{ioThread->context()};
-    // a `ws::Connector` wraps a `websocketpp::client`
-    auto clientMq = util::asio::ws::Connector::MessageQueue{ioThread->context()};
-    // a `ws::Connector::MessageQueue` wraps a `websocketpp::client::connection_ptr`
+    beast::websocket::stream<boost::asio::ip::tcp::socket> ws{ioThread->context()};
 
-    auto use_future = boost::asio::use_future_t<std::allocator<char>>{};
-    // We need this special use_future to work around an Asio bug on gcc 5+.
-
-    connector.asyncConnect(clientMq, host, service, use_future).get();
-
-    clientMq.asyncSend(boost::asio::buffer(msg_buffer.str()), use_future).get();
+    auto ep = boost::asio::ip::tcp::endpoint{boost::asio::ip::address::from_string(host), portNo};
+    ws.next_layer().connect(ep);
+    ws.handshake(host, "/");
+    ws.binary(true);
+    ws.write(boost::asio::buffer(msg_buffer.str()));
 
     util::log::Logger lg;
 
     auto ec = boost::system::error_code{};
-    clientMq.close(ec);
-    if (ec) { BOOST_LOG(lg) << "client message queue close: " << ec.message(); }
-    connector.close(ec);
-    if (ec) { BOOST_LOG(lg) << "connector close: " << ec.message(); }
+    ws.close("complete");
+    beast::multi_buffer b;
+    while (!ec) {
+        ws.read(b, ec);
+        b.consume(b.size());
+    }
 }
 
 void scatterPlot(PlotData data) {

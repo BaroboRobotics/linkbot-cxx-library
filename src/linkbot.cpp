@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2016 Barobo, Inc.
+// Copyright (c) 2013-2017 Barobo, Inc.
 //
 // This file is part of liblinkbot.
 //
@@ -18,20 +18,22 @@
 #include <linkbot/linkbot.hpp>
 #include <linkbot/error.hpp>
 
-#include "gen-robot.pb.hpp"
-#include "gen-daemon.pb.hpp"
-#include <baromesh/system_error.hpp>
+#include <daemon.pb.hpp>
+#include <robot.pb.hpp>
 
-#include <rpc/asio/client.hpp>
+#include "robot-write-stream.hpp"
 
 #include <util/asio/iothread.hpp>
-#include <util/asio/operation.hpp>
-//#include <util/asio/use_future.hpp>
-#include <util/asio/ws/connector.hpp>
 
+#include <util/overload.hpp>
 #include <util/math.hpp>
 #include <util/log.hpp>
 #include <util/global.hpp>
+
+#include <composed/rpc_stream.hpp>
+#include <composed/rpc_client.hpp>
+
+#include <beast/websocket.hpp>
 
 #include <boost/asio/use_future.hpp>
 
@@ -48,15 +50,11 @@
 #include <string>
 #include <utility>
 
-#include <boost/asio/yield.hpp>
-
 namespace barobo {
 
-
-using WebSocketClient = rpc::asio::Client<util::asio::ws::Connector::MessageQueue>;
-using rpc::asio::asyncFire;
-
 namespace {
+
+using namespace std::literals;
 
 auto use_future = boost::asio::use_future_t<std::allocator<char>>{};
 
@@ -64,8 +62,8 @@ std::string daemonHostName () {
     return "127.0.0.1";
 }
 
-std::string daemonServiceName () {
-    return "42000";
+uint16_t daemonPortNo () {
+    return 42000;
 }
 
 std::chrono::milliseconds requestTimeout () {
@@ -99,166 +97,102 @@ void initializeLoggingCore () {
     });
 }
 
-template <class Duration, class CompletionToken>
-auto asyncResolveSerialId (WebSocketClient& daemon, const std::string& serialId,
-        Duration&& timeout, CompletionToken&& token) {
-    using StringPair = std::pair<std::string, std::string>;
-
-    if (serialId.size() != 4) {
-        throw Error{"Linkbot serial IDs must be 4 characters"};
-    }
-
-    auto coroutine =
-    [ &daemon
-    , serialId
-    , timeout = std::forward<Duration>(timeout)
-    , port = uint16_t{}
-    ]
-    (auto&& op, boost::system::error_code ec = {},
-            rpc::MethodResult<barobo::Daemon>::resolveSerialId arg = {}) mutable {
-        reenter (op) {
-            yield {
-                assert(serialId.size() == 4);
-                auto arg = rpc::MethodIn<barobo::Daemon>::resolveSerialId{};
-                strncpy(arg.serialId.value, serialId.data(), 4);
-                arg.serialId.value[4] = 0;
-                asyncFire(daemon, arg, timeout, std::move(op));
-            }
-            if (ec) { op.complete(ec, StringPair{}); return; }
-
-            if (arg.status) {
-                op.complete(make_error_code(baromesh::Status(arg.status)), StringPair{});
-                return;
-            }
-
-            if ((port = arg.endpoint.port) != arg.endpoint.port) {
-                op.complete(make_error_code(baromesh::Status::PORT_OUT_OF_RANGE), StringPair{});
-                return;
-            }
-
-            using std::to_string;
-            op.complete(ec, std::make_pair(daemonHostName(), to_string(port)));
-            // arg.endpoint.host is deprecated: use daemonHostName()
-        }
-    };
-
-    return util::asio::asyncDispatch(
-        daemon.get_io_service(),
-        std::make_tuple(make_error_code(boost::asio::error::operation_aborted), StringPair{}),
-        std::move(coroutine),
-        std::forward<CompletionToken>(token)
-    );
-}
-
 } // <anonymous>
-
-using MethodIn = rpc::MethodIn<barobo::Robot>;
-using MethodResult = rpc::MethodResult<barobo::Robot>;
-using Broadcast = rpc::Broadcast<barobo::Robot>;
 
 struct Linkbot::Impl {
 private:
-    explicit Impl (const std::string& host, const std::string& service)
+    explicit Impl (const std::string& sid)
         : io(util::global<util::asio::IoThread>())
-        , wsConnector(io->context())
-        , robot(io->context())
+        , stream(io->context())
+        , wsStream(stream)
+        , msgStream(wsStream)
+        , rpcStream(msgStream)
+        , daemonRpcClient(rpcStream)
+        , daemonRpc(daemonRpcClient)
+        , robotWriteStream(daemonRpc, sid)
+        , robotRpcClient(robotWriteStream)
+        , robotRpc(robotRpcClient)
+        , serialId(sid)
     {
-        BOOST_LOG(log) << "Connecting to Linkbot proxy at " << host << ":" << service;
-        wsConnector.asyncConnect(robot.messageQueue(), host, service, use_future).get();
-        rpc::asio::asyncConnect<barobo::Robot>(robot, requestTimeout(), use_future).get();
-        robotRunDone = rpc::asio::asyncRunClient<barobo::Robot>(robot, *this, use_future);
+        if (serialId.size() > 4) {
+            throw boost::system::system_error{make_error_code(DaemonStatus::INVALID_SERIALID)};
+        }
+
+        const auto daemonEp = boost::asio::ip::tcp::endpoint{
+                boost::asio::ip::address::from_string(daemonHostName()), daemonPortNo()};
+
+        stream.connect(daemonEp);
+        wsStream.handshake("foo.com", "/");
+        wsStream.binary(true);
+        robotRunDone = rpcStream.async_run_read_loop(
+                util::overload([this](const auto& e, auto&& h) {
+                            this->event(e);
+                            io->context().post(std::forward<decltype(h)>(h));
+                        },
+                        [this](const linkbot_daemon_RpcReply& e, auto&& h) {
+                            daemonRpcClient.event(e);
+                            io->context().post(std::forward<decltype(h)>(h));
+                        }),
+                use_future);
+        linkbot_daemon_addRobotRefs_In refRequest{};
+        refRequest.serialIds_count = 1;
+        strcpy(refRequest.serialIds[0].value, serialId.c_str());
+        daemonRpc.async_do_request(refRequest, linkbot_daemon_RpcReply_addRobotRefs_tag,
+                5s, use_future).get();
+        if (daemonRpc.reply().addRobotRefs.has_status && daemonRpc.reply().addRobotRefs.status) {
+            throw boost::system::system_error{
+                    make_error_code(DaemonStatus(daemonRpc.reply().addRobotRefs.status))};
+        }
         isMoving = 0;
     }
 
-public:
-#if 0
-    static Impl* fromWebSocketEndpoint (const std::string& host, const std::string& service) {
-        initializeLoggingCore();
-        return new Impl{host, service};
-    }
-#endif
+    // ===================================================================================
+    // Daemon events
 
-    // Use the daemon to resolve a serial ID to WebSocket URI and
-    // construct a Linkbot::Impl backed by this host:service. The caller has
-    // ownership of the returned pointer.
-    static Impl* fromSerialId (const std::string& serialId) {
-        initializeLoggingCore();
-
-        auto io = util::global<util::asio::IoThread>();
-        util::log::Logger lg;
-
-        BOOST_LOG(lg) << "Connecting to the daemon ...";
-
-        util::asio::ws::Connector dConnector {io->context()};
-        WebSocketClient daemon {io->context()};
-        dConnector.asyncConnect(daemon.messageQueue(),
-                daemonHostName(), daemonServiceName(), use_future).get();
-
-        std::string host, service;
-        std::tie(host, service) = asyncResolveSerialId(
-                daemon, serialId, requestTimeout(), use_future).get();
-
-        daemon.close();
-
-        BOOST_LOG(lg) << "Got robot URI: " << host << ":" << service;
-        return new Impl{host, service};
-    }
-
-    static Impl* fromEnv() {
-        // Get the serial id from the environment
-        auto env_str = std::getenv("ROBOTMANAGER_IDS");
-        if(!env_str) {
-            throw Error("Environment variable ROBOTMANAGER_IDS not set.");
-        }
-        std::string env{env_str};
-        std::istringstream ss{env};
-        std::string token;
-        _connect_n++;
-        for(int i = 0; i < _connect_n; i++) {
-            std::getline(ss, token, ',');
-        }
-        if ( token.length() != 4 ) {
-            throw Error("Insufficient number of robots connected in robot manager.");
-        }
-        return fromSerialId(token);
-    }
-
-    ~Impl () {
-        if (robotRunDone.valid()) {
-            try {
-                BOOST_LOG(log) << "Disconnecting robot client";
-                asyncDisconnect(robot, requestTimeout(), use_future).get();
-                robot.close();
-                robotRunDone.get();
-            }
-            catch (std::exception& e) {
-                BOOST_LOG(log) << "Exception during disconnect: " << e.what();
+    void event(const linkbot_daemon_ReceiveTransmission& e) {
+        if (e.has_serialId && serialId == std::string(e.serialId.value)) {
+            auto visitor = util::overload([this](const auto& robotEvent) {
+                        this->event(robotEvent);
+                    }, [this](const linkbot_robot_RpcReply& robotEvent) {
+                        robotRpcClient.event(robotEvent);
+                    });
+            if (!nanopb::visit(visitor, e.payload.arg)) {
+                BOOST_LOG(log) << "Unrecognized robot message";
             }
         }
     }
 
-    void onBroadcast (Broadcast::buttonEvent b) {
-        if (buttonEventCallback) {
-            buttonEventCallback(static_cast<LinkbotButton>(b.button),
-                                static_cast<LinkbotButtonState>(b.state),
-                                b.timestamp);
+    void event(const linkbot_daemon_DongleEvent& e) {
+        BOOST_LOG(log) << "DongleEvent unimplemented";
+    }
+
+    // ===================================================================================
+    // Robot events
+
+    void event(const linkbot_robot_AccelerometerEvent& e) {
+        if (accelerometerEventCallback && e.has_x && e.has_y && e.has_z && e.has_timestamp) {
+            accelerometerEventCallback(e.x, e.y, e.z, e.timestamp);
         }
     }
 
-    void onBroadcast (Broadcast::encoderEvent b) {
-        if (encoderEventCallback) {
-            encoderEventCallback(b.encoder, util::radToDeg(b.value), b.timestamp);
+    void event(const linkbot_robot_ButtonEvent& e) {
+        if (buttonEventCallback && e.has_button && e.has_state && e.has_timestamp) {
+            buttonEventCallback(static_cast<LinkbotButton>(e.button),
+                                static_cast<LinkbotButtonState>(e.state),
+                                e.timestamp);
         }
     }
 
-    void onBroadcast (Broadcast::accelerometerEvent b) {
-        if (accelerometerEventCallback) {
-            accelerometerEventCallback(b.x, b.y, b.z, b.timestamp);
+    void event(const linkbot_robot_EncoderEvent& e) {
+        if (encoderEventCallback && e.has_encoder && e.has_value && e.has_timestamp) {
+            encoderEventCallback(e.encoder, util::radToDeg(e.value), e.timestamp);
         }
     }
 
-    void onBroadcast (Broadcast::jointEvent b) {
-        _onJointEvent(b.joint, static_cast<LinkbotJointState>(b.event), b.timestamp);
+    void event(const linkbot_robot_JointEvent& e) {
+        if (e.has_joint && e.has_event && e.has_timestamp) {
+            _onJointEvent(e.joint, static_cast<LinkbotJointState>(e.event), e.timestamp);
+        }
     }
 
     void _onJointEvent(int joint, LinkbotJointState event, int timestamp)
@@ -284,14 +218,69 @@ public:
         }
     }
 
-    void onBroadcast (Broadcast::debugMessageEvent e) {
-        BOOST_LOG(log) << "Debug message from robot: " << e.bytestring;
+    void event(const linkbot_robot_DebugMessageEvent& e) {
+        if (e.has_bytestring) {
+            BOOST_LOG(log) << "Debug message from robot: " << e.bytestring;
+        }
     }
 
-    void onBroadcast (Broadcast::connectionTerminated b) {
-        BOOST_LOG(log) << "Connection terminated at " << b.timestamp;
-        if (connectionTerminatedCallback) {
-            connectionTerminatedCallback(b.timestamp);
+    void event(const linkbot_robot_ConnectionTerminated& e) {
+        if (e.has_timestamp) {
+            BOOST_LOG(log) << "Connection terminated at " << e.timestamp;
+            if (connectionTerminatedCallback) {
+                connectionTerminatedCallback(e.timestamp);
+            }
+        }
+    }
+
+    void event(const linkbot_robot_PowerOnEvent& e) {
+        BOOST_LOG(log) << "PowerOnEvent unimplemented";
+    }
+
+public:
+    // The caller has ownership of the returned pointer.
+    static Impl* fromSerialId (const std::string& serialId) {
+        initializeLoggingCore();
+        return new Impl{serialId};
+    }
+
+    static Impl* fromEnv() {
+        // Get the serial id from the environment
+        auto env_str = std::getenv("ROBOTMANAGER_IDS");
+        if(!env_str) {
+            throw Error("Environment variable ROBOTMANAGER_IDS not set.");
+        }
+        std::string env{env_str};
+        std::istringstream ss{env};
+        std::string token;
+        _connect_n++;
+        for(int i = 0; i < _connect_n; i++) {
+            std::getline(ss, token, ',');
+        }
+        if ( token.length() != 4 ) {
+            throw Error("Insufficient number of robots connected in robot manager.");
+        }
+        return fromSerialId(token);
+    }
+
+    ~Impl () {
+        if (robotRunDone.valid()) {
+            try {
+                BOOST_LOG(log) << "Disconnecting robot client";
+                linkbot_daemon_releaseRobotRefs_In refRequest{};
+                refRequest.serialIds_count = 1;
+                strcpy(refRequest.serialIds[0].value, serialId.c_str());
+                daemonRpc.async_do_request(refRequest, linkbot_daemon_RpcReply_releaseRobotRefs_tag,
+                        5s, use_future).get();
+                wsStream.close("client destroyed");
+                boost::system::error_code ec;
+                daemonRpc.close(ec);
+                robotRpc.close(ec);
+                robotRunDone.get();
+            }
+            catch (std::exception& e) {
+                BOOST_LOG(log) << "Exception during disconnect: " << e.what();
+            }
         }
     }
 
@@ -311,9 +300,27 @@ public:
     }
 
     std::shared_ptr<util::asio::IoThread> io;
-    util::asio::ws::Connector wsConnector;
 
-    WebSocketClient robot;  // RPC client
+    boost::asio::ip::tcp::socket stream;
+    beast::websocket::stream<boost::asio::ip::tcp::socket&> wsStream;
+    composed::websocket msgStream;
+
+    using DaemonTxMsg = linkbot_daemon_ClientToDaemon;
+    using DaemonRxMsg = linkbot_daemon_DaemonToClient;
+    using DaemonTxRpc = linkbot_daemon_RpcRequest;
+    using DaemonRxRpc = linkbot_daemon_RpcReply;
+    using RobotTxRpc = linkbot_robot_RpcRequest;
+    using RobotRxRpc = linkbot_robot_RpcReply;
+
+    composed::rpc_stream<composed::websocket&, DaemonTxMsg, DaemonRxMsg> rpcStream;
+    composed::rpc_client<decltype(rpcStream)&, DaemonTxRpc, DaemonRxRpc> daemonRpcClient;
+    typename decltype(daemonRpcClient)::transactor daemonRpc;
+    RobotWriteStream<decltype(daemonRpc)> robotWriteStream;
+    composed::rpc_client<decltype(robotWriteStream)&, RobotTxRpc, RobotRxRpc> robotRpcClient;
+    typename decltype(robotRpcClient)::transactor robotRpc;
+
+    std::string serialId;
+
     std::future<void> robotRunDone;
 
     std::function<void(LinkbotButton, LinkbotButtonState, int)> buttonEventCallback;
@@ -374,11 +381,11 @@ Linkbot::~Linkbot () {
 
 using namespace std::placeholders; // _1, _2, etc.
 
+#define REQUEST(x, ...) linkbot_robot_##x##_In{__VA_ARGS__}, linkbot_robot_RpcReply_##x##_tag
+
 void Linkbot::initJointEventCallback () {
     try {
-        asyncFire(m->robot, MethodIn::enableJointEvent {
-            true
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableJointEvent, true, true), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -390,7 +397,8 @@ void Linkbot::initJointEventCallback () {
 void Linkbot::getAccelerometer (int& timestamp, double&x, double&y, double&z)
 {
     try {
-        auto value = asyncFire(m->robot, MethodIn::getAccelerometerData{}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(getAccelerometerData), requestTimeout(), use_future).get();
+        auto& value = m->robotRpc.reply().getAccelerometerData;
         x = value.x;
         y = value.y;
         z = value.z;
@@ -404,10 +412,10 @@ std::vector<int> Linkbot::getAdcRaw()
 {
     try {
         std::vector<int> rvalues;
-        auto value = asyncFire( m->robot,
-                                MethodIn::getAdcRaw{},
+        m->robotRpc.async_do_request(REQUEST(getAdcRaw),
                                 requestTimeout(),
                                 use_future).get();
+        auto& value = m->robotRpc.reply().getAdcRaw;
         for(auto i = 0; i < value.values_count; i++) {
             rvalues.push_back(value.values[i]);
         }
@@ -421,8 +429,8 @@ std::vector<int> Linkbot::getAdcRaw()
 void Linkbot::getBatteryVoltage(double& volts)
 {
     try {
-        auto value = asyncFire(m->robot, MethodIn::getBatteryVoltage{}, requestTimeout(), use_future).get();
-        volts = value.v;
+        m->robotRpc.async_do_request(REQUEST(getBatteryVoltage), requestTimeout(), use_future).get();
+        volts = m->robotRpc.reply().getBatteryVoltage.v;
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -432,8 +440,9 @@ void Linkbot::getBatteryVoltage(double& volts)
 void Linkbot::getFormFactor(LinkbotFormFactor& form)
 {
     try {
-        auto value = asyncFire(m->robot, MethodIn::getFormFactor{}, requestTimeout(), use_future).get();
-        form = LinkbotFormFactor(value.value);
+        m->robotRpc.async_do_request(REQUEST(getFormFactor), requestTimeout(), use_future).get();
+        form = LinkbotFormFactor(m->robotRpc.reply().getFormFactor.value);
+        BOOST_LOG(m->log) << "Got form factor: " << form;
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -442,7 +451,8 @@ void Linkbot::getFormFactor(LinkbotFormFactor& form)
 
 void Linkbot::getJointAngles (int& timestamp, double& a0, double& a1, double& a2) {
     try {
-        auto values = asyncFire(m->robot, MethodIn::getEncoderValues{}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(getEncoderValues), requestTimeout(), use_future).get();
+        auto& values = m->robotRpc.reply().getEncoderValues;
         assert(values.values_count >= 3);
         a0 = util::radToDeg(values.values[0]);
         a1 = util::radToDeg(values.values[1]);
@@ -457,7 +467,8 @@ void Linkbot::getJointAngles (int& timestamp, double& a0, double& a1, double& a2
 void Linkbot::getJointSpeeds(double& s1, double& s2, double& s3)
 {
     try {
-        auto values = asyncFire(m->robot, MethodIn::getMotorControllerOmega{}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(getMotorControllerOmega), requestTimeout(), use_future).get();
+        auto& values = m->robotRpc.reply().getMotorControllerOmega;
         assert(values.values_count >= 3);
         s1 = util::radToDeg(values.values[0]);
         s2 = util::radToDeg(values.values[1]);
@@ -474,7 +485,8 @@ void Linkbot::getJointStates(int& timestamp,
                              LinkbotJointState& s3)
 {
     try {
-        auto values = asyncFire(m->robot, MethodIn::getJointStates{}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(getJointStates), requestTimeout(), use_future).get();
+        auto& values = m->robotRpc.reply().getJointStates;
         assert(values.values_count >= 3);
         s1 = static_cast<LinkbotJointState>(values.values[0]);
         s2 = static_cast<LinkbotJointState>(values.values[1]);
@@ -487,7 +499,8 @@ void Linkbot::getJointStates(int& timestamp,
 
 void Linkbot::getLedColor (int& r, int& g, int& b) {
     try {
-        auto color = asyncFire(m->robot, MethodIn::getLedColor{}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(getLedColor), requestTimeout(), use_future).get();
+        auto color = m->robotRpc.reply().getLedColor;
         r = 0xff & color.value >> 16;
         g = 0xff & color.value >> 8;
         b = 0xff & color.value;
@@ -499,8 +512,8 @@ void Linkbot::getLedColor (int& r, int& g, int& b) {
 
 void Linkbot::getVersionString (std::string& v) {
     try {
-        v = asyncFire(m->robot,
-                MethodIn::getFirmwareVersionString{}, requestTimeout(), use_future).get().value;
+        m->robotRpc.async_do_request(REQUEST(getFirmwareVersionString), requestTimeout(), use_future).get();
+        v = m->robotRpc.reply().getFirmwareVersionString.value;
         BOOST_LOG(m->log) << "Firmware version " << v;
     }
     catch (std::exception& e) {
@@ -511,9 +524,8 @@ void Linkbot::getVersionString (std::string& v) {
 void Linkbot::getJointSafetyThresholds(int& t1, int& t2, int& t3)
 {
     try {
-        auto value = asyncFire(m->robot,
-            MethodIn::getMotorControllerSafetyThreshold{},
-            requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(getMotorControllerSafetyThreshold), requestTimeout(), use_future).get();
+        auto& value = m->robotRpc.reply().getMotorControllerSafetyThreshold;
         t1 = value.values[0];
         t2 = value.values[1];
         t3 = value.values[2];
@@ -526,9 +538,8 @@ void Linkbot::getJointSafetyThresholds(int& t1, int& t2, int& t3)
 void Linkbot::getJointSafetyAngles(double& t1, double& t2, double& t3)
 {
     try {
-        auto value = asyncFire(m->robot,
-            MethodIn::getMotorControllerSafetyAngle{},
-            requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(getMotorControllerSafetyAngle), requestTimeout(), use_future).get();
+        auto& value = m->robotRpc.reply().getMotorControllerSafetyAngle;
         t1 = util::radToDeg(double(value.values[0]));
         t2 = util::radToDeg(double(value.values[1]));
         t3 = util::radToDeg(double(value.values[2]));
@@ -549,7 +560,7 @@ void Linkbot::getSerialId(std::string& serialId)
 /* SETTERS */
 void Linkbot::resetEncoderRevs() {
     try {
-        asyncFire(m->robot, MethodIn::resetEncoderRevs{}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(resetEncoderRevs), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -558,7 +569,7 @@ void Linkbot::resetEncoderRevs() {
 
 void Linkbot::setBuzzerFrequency (double freq) {
     try {
-        asyncFire(m->robot, MethodIn::setBuzzerFrequency{float(freq)}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(setBuzzerFrequency, true, float(freq)), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -567,7 +578,8 @@ void Linkbot::setBuzzerFrequency (double freq) {
 
 void Linkbot::setJointSpeeds (int mask, double s0, double s1, double s2) {
     try {
-        MethodIn::setMotorControllerOmega arg;
+        linkbot_robot_setMotorControllerOmega_In arg;
+        arg.has_mask = true;
         arg.mask = mask;
         arg.values_count = 0;
         int jointFlag = 0x01;
@@ -577,7 +589,7 @@ void Linkbot::setJointSpeeds (int mask, double s0, double s1, double s2) {
             }
             jointFlag <<= 1;
         }
-        asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_setMotorControllerOmega_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -591,8 +603,8 @@ void Linkbot::setJointStates(
         LinkbotJointState s3, double d3
         )
 {
-    barobo_Robot_Goal_Type goalType[3];
-    barobo_Robot_Goal_Controller controllerType[3];
+    linkbot_robot_Goal_Type goalType[3];
+    linkbot_robot_Goal_Controller controllerType[3];
     LinkbotJointState jointStates[3];
     float coefficients[3];
     jointStates[0] = s1;
@@ -604,23 +616,23 @@ void Linkbot::setJointStates(
     for(int i = 0; i < 3; i++) {
         switch(jointStates[i]) {
             case LINKBOT_JOINT_STATE_COAST:
-                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
-                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                goalType[i] = linkbot_robot_Goal_Type_INFINITE;
+                controllerType[i] = linkbot_robot_Goal_Controller_PID;
                 coefficients[i] = 0;
                 break;
             case LINKBOT_JOINT_STATE_HOLD:
-                goalType[i] = barobo_Robot_Goal_Type_RELATIVE;
-                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                goalType[i] = linkbot_robot_Goal_Type_RELATIVE;
+                controllerType[i] = linkbot_robot_Goal_Controller_PID;
                 coefficients[i] = 0;
                 break;
             case LINKBOT_JOINT_STATE_MOVING:
-                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
-                controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
+                goalType[i] = linkbot_robot_Goal_Type_INFINITE;
+                controllerType[i] = linkbot_robot_Goal_Controller_CONSTVEL;
                 m->setMoving(1<<i);
                 break;
             case LINKBOT_JOINT_STATE_POWER:
-                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
-                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                goalType[i] = linkbot_robot_Goal_Type_INFINITE;
+                controllerType[i] = linkbot_robot_Goal_Controller_PID;
                 m->setMoving(1<<i);
                 break;
             default:
@@ -628,11 +640,11 @@ void Linkbot::setJointStates(
         }
     }
     try {
-        asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { true, goalType[0], true, coefficients[0], true, controllerType[0] },
-            bool(mask&0x02), { true, goalType[1], true, coefficients[1], true, controllerType[1] },
-            bool(mask&0x04), { true, goalType[2], true, coefficients[2], true, controllerType[2] }
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(move,
+                bool(mask&0x01), { true, goalType[0], true, coefficients[0], true, controllerType[0] },
+                bool(mask&0x02), { true, goalType[1], true, coefficients[1], true, controllerType[1] },
+                bool(mask&0x04), { true, goalType[2], true, coefficients[2], true, controllerType[2] }),
+                requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -646,8 +658,8 @@ void Linkbot::setJointStates(
         LinkbotJointState s3, double d3, double timeout3, LinkbotJointState end3
         )
 {
-    barobo_Robot_Goal_Type goalType[3];
-    barobo_Robot_Goal_Controller controllerType[3];
+    linkbot_robot_Goal_Type goalType[3];
+    linkbot_robot_Goal_Controller controllerType[3];
     LinkbotJointState jointStates[3];
     float coefficients[3];
     jointStates[0] = s1;
@@ -664,23 +676,23 @@ void Linkbot::setJointStates(
     for(int i = 0; i < 3; i++) {
         switch(jointStates[i]) {
             case LINKBOT_JOINT_STATE_COAST:
-                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
-                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                goalType[i] = linkbot_robot_Goal_Type_INFINITE;
+                controllerType[i] = linkbot_robot_Goal_Controller_PID;
                 coefficients[i] = 0;
                 break;
             case LINKBOT_JOINT_STATE_HOLD:
-                goalType[i] = barobo_Robot_Goal_Type_RELATIVE;
-                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                goalType[i] = linkbot_robot_Goal_Type_RELATIVE;
+                controllerType[i] = linkbot_robot_Goal_Controller_PID;
                 coefficients[i] = 0;
                 break;
             case LINKBOT_JOINT_STATE_MOVING:
-                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
-                controllerType[i] = barobo_Robot_Goal_Controller_CONSTVEL;
+                goalType[i] = linkbot_robot_Goal_Type_INFINITE;
+                controllerType[i] = linkbot_robot_Goal_Controller_CONSTVEL;
                 m->setMoving(1<<i);
                 break;
             case LINKBOT_JOINT_STATE_POWER:
-                goalType[i] = barobo_Robot_Goal_Type_INFINITE;
-                controllerType[i] = barobo_Robot_Goal_Controller_PID;
+                goalType[i] = linkbot_robot_Goal_Type_INFINITE;
+                controllerType[i] = linkbot_robot_Goal_Controller_PID;
                 m->setMoving(1<<i);
                 break;
             default:
@@ -691,27 +703,27 @@ void Linkbot::setJointStates(
         auto js_to_int = [] (LinkbotJointState js) {
             switch(js) {
                 case LINKBOT_JOINT_STATE_COAST:
-                    return barobo_Robot_JointState_COAST;
+                    return linkbot_robot_JointState_COAST;
                 case LINKBOT_JOINT_STATE_HOLD:
-                    return barobo_Robot_JointState_HOLD;
+                    return linkbot_robot_JointState_HOLD;
                 case LINKBOT_JOINT_STATE_MOVING:
-                    return barobo_Robot_JointState_MOVING;
+                    return linkbot_robot_JointState_MOVING;
                 default:
-                    return barobo_Robot_JointState_COAST;
+                    return linkbot_robot_JointState_COAST;
             }
         };
 
-        asyncFire(m->robot, MethodIn::move {
+        m->robotRpc.async_do_request(REQUEST(move,
             bool(mask&0x01),
-            { goalType[0], coefficients[0], true, controllerType[0],
+            { true, goalType[0], true, coefficients[0], true, controllerType[0],
                 hasTimeouts[0], float(timeout1), hasTimeouts[0], js_to_int(end1)},
             bool(mask&0x02),
-            { goalType[1], coefficients[1], true, controllerType[1],
+            { true, goalType[1], true, coefficients[1], true, controllerType[1],
                 hasTimeouts[1], float(timeout2), hasTimeouts[1], js_to_int(end2)},
             bool(mask&0x04),
-            { goalType[2], coefficients[2], true, controllerType[2],
-                hasTimeouts[2], float(timeout3), hasTimeouts[2], js_to_int(end3)}
-        }, requestTimeout(), use_future).get();
+            { true, goalType[2], true, coefficients[2], true, controllerType[2],
+                hasTimeouts[2], float(timeout3), hasTimeouts[2], js_to_int(end3)}),
+            requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -720,9 +732,7 @@ void Linkbot::setJointStates(
 
 void Linkbot::setLedColor (int r, int g, int b) {
     try {
-        asyncFire(m->robot, MethodIn::setLedColor{
-            uint32_t(r << 16 | g << 8 | b)
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(setLedColor, true, uint32_t(r << 16 | g << 8 | b)), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -731,7 +741,8 @@ void Linkbot::setLedColor (int r, int g, int b) {
 
 void Linkbot::setJointSafetyThresholds(int mask, int t0, int t1, int t2) {
     try {
-        MethodIn::setMotorControllerSafetyThreshold arg;
+        linkbot_robot_setMotorControllerSafetyThreshold_In arg;
+        arg.has_mask = true;
         arg.mask = mask;
         arg.values_count = 0;
         int jointFlag = 0x01;
@@ -741,7 +752,7 @@ void Linkbot::setJointSafetyThresholds(int mask, int t0, int t1, int t2) {
             }
             jointFlag <<= 1;
         }
-        asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_setMotorControllerSafetyThreshold_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -750,7 +761,8 @@ void Linkbot::setJointSafetyThresholds(int mask, int t0, int t1, int t2) {
 
 void Linkbot::setJointSafetyAngles(int mask, double t0, double t1, double t2) {
     try {
-        MethodIn::setMotorControllerSafetyAngle arg;
+        linkbot_robot_setMotorControllerSafetyAngle_In arg;
+        arg.has_mask = true;
         arg.mask = mask;
         arg.values_count = 0;
         int jointFlag = 0x01;
@@ -760,7 +772,7 @@ void Linkbot::setJointSafetyAngles(int mask, double t0, double t1, double t2) {
             }
             jointFlag <<= 1;
         }
-        asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_setMotorControllerSafetyAngle_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -772,7 +784,8 @@ void Linkbot::setJointAccelI(
     double a0, double a1, double a2)
 {
     try {
-        MethodIn::setMotorControllerAlphaI arg;
+        linkbot_robot_setMotorControllerAlphaI_In arg;
+        arg.has_mask = true;
         arg.mask = mask;
         arg.values_count = 0;
         int jointFlag = 0x01;
@@ -782,7 +795,7 @@ void Linkbot::setJointAccelI(
             }
             jointFlag <<= 1;
         }
-        asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_setMotorControllerAlphaI_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -794,7 +807,8 @@ void Linkbot::setJointAccelF(
     double a0, double a1, double a2)
 {
     try {
-        MethodIn::setMotorControllerAlphaF arg;
+        linkbot_robot_setMotorControllerAlphaF_In arg;
+        arg.has_mask = true;
         arg.mask = mask;
         arg.values_count = 0;
         int jointFlag = 0x01;
@@ -804,7 +818,7 @@ void Linkbot::setJointAccelF(
             }
             jointFlag <<= 1;
         }
-        asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_setMotorControllerAlphaF_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -816,23 +830,20 @@ void Linkbot::drive (int mask, double a0, double a1, double a2)
 {
     try {
         m->setMoving(mask);
-        asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(util::degToRad(a0)),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+        m->robotRpc.async_do_request(REQUEST(move,
+            bool(mask&0x01), { true, linkbot_robot_Goal_Type_RELATIVE,
+                               true, float(util::degToRad(a0)),
+                               true, linkbot_robot_Goal_Controller_PID
                              },
-            bool(mask&0x02), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(util::degToRad(a1)),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+            bool(mask&0x02), { true, linkbot_robot_Goal_Type_RELATIVE,
+                               true, float(util::degToRad(a1)),
+                               true, linkbot_robot_Goal_Controller_PID
                              },
-            bool(mask&0x04), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(util::degToRad(a2)),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+            bool(mask&0x04), { true, linkbot_robot_Goal_Type_RELATIVE,
+                               true, float(util::degToRad(a2)),
+                               true, linkbot_robot_Goal_Controller_PID
                              }
-        }, requestTimeout(), use_future).get();
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -843,23 +854,20 @@ void Linkbot::driveTo (int mask, double a0, double a1, double a2)
 {
     try {
         m->setMoving(mask);
-        asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { barobo_Robot_Goal_Type_ABSOLUTE,
-                               float(util::degToRad(a0)),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+        m->robotRpc.async_do_request(REQUEST(move,
+            bool(mask&0x01), { true, linkbot_robot_Goal_Type_ABSOLUTE,
+                               true, float(util::degToRad(a0)),
+                               true, linkbot_robot_Goal_Controller_PID
                              },
-            bool(mask&0x02), { barobo_Robot_Goal_Type_ABSOLUTE,
-                               float(util::degToRad(a1)),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+            bool(mask&0x02), { true, linkbot_robot_Goal_Type_ABSOLUTE,
+                               true, float(util::degToRad(a1)),
+                               true, linkbot_robot_Goal_Controller_PID
                              },
-            bool(mask&0x04), { barobo_Robot_Goal_Type_ABSOLUTE,
-                               float(util::degToRad(a2)),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+            bool(mask&0x04), { true, linkbot_robot_Goal_Type_ABSOLUTE,
+                               true, float(util::degToRad(a2)),
+                               true, linkbot_robot_Goal_Controller_PID
                              }
-        }, requestTimeout(), use_future).get();
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -869,17 +877,17 @@ void Linkbot::driveTo (int mask, double a0, double a1, double a2)
 void Linkbot::move (int mask, double a0, double a1, double a2) {
     try {
         m->setMoving(mask);
-        asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(util::degToRad(a0)),
+        m->robotRpc.async_do_request(REQUEST(move,
+            bool(mask&0x01), { true, linkbot_robot_Goal_Type_RELATIVE,
+                               true, float(util::degToRad(a0)),
                                false},
-            bool(mask&0x02), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(util::degToRad(a1)),
+            bool(mask&0x02), { true, linkbot_robot_Goal_Type_RELATIVE,
+                               true, float(util::degToRad(a1)),
                                false},
-            bool(mask&0x04), { barobo_Robot_Goal_Type_RELATIVE,
-                               float(util::degToRad(a2)),
+            bool(mask&0x04), { true, linkbot_robot_Goal_Type_RELATIVE,
+                               true, float(util::degToRad(a2)),
                                false}
-        }, requestTimeout(), use_future).get();
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -889,11 +897,11 @@ void Linkbot::move (int mask, double a0, double a1, double a2) {
 void Linkbot::moveContinuous (int mask, double c0, double c1, double c2) {
     try {
         m->setMoving(mask);
-        asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { barobo_Robot_Goal_Type_INFINITE, float(c0), false },
-            bool(mask&0x02), { barobo_Robot_Goal_Type_INFINITE, float(c1), false },
-            bool(mask&0x04), { barobo_Robot_Goal_Type_INFINITE, float(c2), false }
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(move,
+            bool(mask&0x01), { true, linkbot_robot_Goal_Type_INFINITE, true, float(c0), false },
+            bool(mask&0x02), { true, linkbot_robot_Goal_Type_INFINITE, true, float(c1), false },
+            bool(mask&0x04), { true, linkbot_robot_Goal_Type_INFINITE, true, float(c2), false }
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -909,52 +917,49 @@ void Linkbot::moveAccel(int mask, int relativeMask,
     hasTimeouts[0] = (timeout0 != 0.0);
     hasTimeouts[1] = (timeout1 != 0.0);
     hasTimeouts[2] = (timeout2 != 0.0);
-    barobo_Robot_Goal_Type motionType[3];
+    linkbot_robot_Goal_Type motionType[3];
     for(int i = 0; i < 3; i++) {
         if(relativeMask & (1<<i)) {
-            motionType[i] = barobo_Robot_Goal_Type_RELATIVE;
+            motionType[i] = linkbot_robot_Goal_Type_RELATIVE;
         } else {
-            motionType[i] = barobo_Robot_Goal_Type_ABSOLUTE;
+            motionType[i] = linkbot_robot_Goal_Type_ABSOLUTE;
         }
     }
     try {
         auto js_to_int = [] (LinkbotJointState js) {
             switch(js) {
                 case LINKBOT_JOINT_STATE_COAST:
-                    return barobo_Robot_JointState_COAST;
+                    return linkbot_robot_JointState_COAST;
                 case LINKBOT_JOINT_STATE_HOLD:
-                    return barobo_Robot_JointState_HOLD;
+                    return linkbot_robot_JointState_HOLD;
                 case LINKBOT_JOINT_STATE_MOVING:
-                    return barobo_Robot_JointState_MOVING;
+                    return linkbot_robot_JointState_MOVING;
                 default:
-                    return barobo_Robot_JointState_COAST;
+                    return linkbot_robot_JointState_COAST;
             }
         };
         
         m->setMoving(mask);
-        asyncFire(m->robot, MethodIn::move {
+        m->robotRpc.async_do_request(REQUEST(move,
             bool(mask&0x01), {
-                motionType[0],
-                float(util::degToRad(omega0_i)),
-                true,
-                barobo_Robot_Goal_Controller_ACCEL,
+                true, motionType[0],
+                true, float(util::degToRad(omega0_i)),
+                true, linkbot_robot_Goal_Controller_ACCEL,
                 hasTimeouts[0], float(timeout0), hasTimeouts[0], js_to_int(endstate0)
                 },
             bool(mask&0x02), {
-                motionType[1],
-                float(util::degToRad(omega1_i)),
-                true,
-                barobo_Robot_Goal_Controller_ACCEL,
+                true, motionType[1],
+                true, float(util::degToRad(omega1_i)),
+                true, linkbot_robot_Goal_Controller_ACCEL,
                 hasTimeouts[1], float(timeout1), hasTimeouts[1], js_to_int(endstate1)
                 },
             bool(mask&0x04), {
-                motionType[2],
-                float(util::degToRad(omega2_i)),
-                true,
-                barobo_Robot_Goal_Controller_ACCEL,
+                true, motionType[2],
+                true, float(util::degToRad(omega2_i)),
+                true, linkbot_robot_Goal_Controller_ACCEL,
                 hasTimeouts[2], float(timeout2), hasTimeouts[2], js_to_int(endstate2)
                 }
-        }, requestTimeout(), use_future).get();
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -963,37 +968,34 @@ void Linkbot::moveAccel(int mask, int relativeMask,
 
 void Linkbot::moveSmooth(int mask, int relativeMask, double a0, double a1, double a2)
 {
-    barobo_Robot_Goal_Type motionType[3];
+    linkbot_robot_Goal_Type motionType[3];
     for(int i = 0; i < 3; i++) {
         if(relativeMask & (1<<i)) {
-            motionType[i] = barobo_Robot_Goal_Type_RELATIVE;
+            motionType[i] = linkbot_robot_Goal_Type_RELATIVE;
         } else {
-            motionType[i] = barobo_Robot_Goal_Type_ABSOLUTE;
+            motionType[i] = linkbot_robot_Goal_Type_ABSOLUTE;
         }
     }
 
     try {
         m->setMoving(mask);
-        asyncFire(m->robot, MethodIn::move {
+        m->robotRpc.async_do_request(REQUEST(move,
             bool(mask&0x01), {
-                motionType[0],
-                float(util::degToRad(a0)),
-                true,
-                barobo_Robot_Goal_Controller_SMOOTH
+                true, motionType[0],
+                true, float(util::degToRad(a0)),
+                true, linkbot_robot_Goal_Controller_SMOOTH
                 },
             bool(mask&0x02), {
-                motionType[1],
-                float(util::degToRad(a1)),
-                true,
-                barobo_Robot_Goal_Controller_SMOOTH
+                true, motionType[1],
+                true, float(util::degToRad(a1)),
+                true, linkbot_robot_Goal_Controller_SMOOTH
                 },
             bool(mask&0x04), {
-                motionType[2],
-                float(util::degToRad(a2)),
-                true,
-                barobo_Robot_Goal_Controller_SMOOTH
+                true, motionType[2],
+                true, float(util::degToRad(a2)),
+                true, linkbot_robot_Goal_Controller_SMOOTH
                 }
-        }, requestTimeout(), use_future).get();
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1003,11 +1005,11 @@ void Linkbot::moveSmooth(int mask, int relativeMask, double a0, double a1, doubl
 void Linkbot::moveTo (int mask, double a0, double a1, double a2) {
     try {
         m->setMoving(mask);
-        asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { barobo_Robot_Goal_Type_ABSOLUTE, float(util::degToRad(a0)) },
-            bool(mask&0x02), { barobo_Robot_Goal_Type_ABSOLUTE, float(util::degToRad(a1)) },
-            bool(mask&0x04), { barobo_Robot_Goal_Type_ABSOLUTE, float(util::degToRad(a2)) }
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(move,
+            bool(mask&0x01), { true, linkbot_robot_Goal_Type_ABSOLUTE, true, float(util::degToRad(a0)) },
+            bool(mask&0x02), { true, linkbot_robot_Goal_Type_ABSOLUTE, true, float(util::degToRad(a1)) },
+            bool(mask&0x04), { true, linkbot_robot_Goal_Type_ABSOLUTE, true, float(util::degToRad(a2)) }
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1028,23 +1030,20 @@ void Linkbot::moveWait(int mask) {
 void Linkbot::motorPower(int mask, int m1, int m2, int m3)
 {
     try {
-        asyncFire(m->robot, MethodIn::move {
-            bool(mask&0x01), { barobo_Robot_Goal_Type_INFINITE,
-                               float(m1),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+        m->robotRpc.async_do_request(REQUEST(move,
+            bool(mask&0x01), { true, linkbot_robot_Goal_Type_INFINITE,
+                               true, float(m1),
+                               true, linkbot_robot_Goal_Controller_PID
                              },
-            bool(mask&0x02), { barobo_Robot_Goal_Type_INFINITE,
-                               float(m2),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+            bool(mask&0x02), { true, linkbot_robot_Goal_Type_INFINITE,
+                               true, float(m2),
+                               true, linkbot_robot_Goal_Controller_PID
                              },
-            bool(mask&0x04), { barobo_Robot_Goal_Type_INFINITE,
-                               float(m3),
-                               true,
-                               barobo_Robot_Goal_Controller_PID
+            bool(mask&0x04), { true, linkbot_robot_Goal_Type_INFINITE,
+                               true, float(m3),
+                               true, linkbot_robot_Goal_Controller_PID
                              }
-        }, requestTimeout(), use_future).get();
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1053,7 +1052,7 @@ void Linkbot::motorPower(int mask, int m1, int m2, int m3)
 
 void Linkbot::stop (int mask) {
     try {
-        asyncFire(m->robot, MethodIn::stop{true, static_cast<uint32_t>(mask)}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(stop, true, static_cast<uint32_t>(mask)), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1067,9 +1066,9 @@ void Linkbot::setAccelerometerEventCallback (LinkbotAccelerometerEventCallback c
     auto granularity = float(enable ? 0.05 : 0);
 
     try {
-        asyncFire(m->robot, MethodIn::enableAccelerometerEvent {
-            enable, granularity
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableAccelerometerEvent,
+            true, enable, true, granularity
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1088,9 +1087,9 @@ void Linkbot::setAccelerometerEventCallback (std::function<void(double, double, 
     auto granularity = float(enable ? 0.05 : 0);
 
     try {
-        asyncFire(m->robot, MethodIn::enableAccelerometerEvent {
-            enable, granularity
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableAccelerometerEvent,
+            true, enable, true, granularity
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1109,7 +1108,7 @@ void Linkbot::setButtonEventCallback (LinkbotButtonEventCallback cb, void* userD
     const bool enable = !!cb;
 
     try {
-        asyncFire(m->robot, MethodIn::enableButtonEvent{enable}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableButtonEvent, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1127,7 +1126,7 @@ void Linkbot::setButtonEventCallback (std::function<void(LinkbotButton, LinkbotB
     const bool enable = !!cb;
 
     try {
-        asyncFire(m->robot, MethodIn::enableButtonEvent{enable}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableButtonEvent, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1148,11 +1147,11 @@ void Linkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb,
     granularity = util::degToRad(granularity);
 
     try {
-        asyncFire(m->robot, MethodIn::enableEncoderEvent {
-            true, { enable, float(granularity) },
-            true, { enable, float(granularity) },
-            true, { enable, float(granularity) }
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableEncoderEvent,
+            true, { true, enable, true, float(granularity) },
+            true, { true, enable, true, float(granularity) },
+            true, { true, enable, true, float(granularity) }
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1169,14 +1168,14 @@ void Linkbot::setEncoderEventCallback (LinkbotEncoderEventCallback cb,
 void Linkbot::setEncoderEventCallback (std::function<void(int, double, int)> cb, double granularity)
 {
     const bool enable = !!cb;
-    granularity = degToRad(granularity);
+    granularity = util::degToRad(granularity);
 
     try {
-        asyncFire(m->robot, MethodIn::enableEncoderEvent {
-            true, { enable, float(granularity) },
-            true, { enable, float(granularity) },
-            true, { enable, float(granularity) }
-        }, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableEncoderEvent,
+            true, { true, enable, true, float(granularity) },
+            true, { true, enable, true, float(granularity) },
+            true, { true, enable, true, float(granularity) }
+        ), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1194,7 +1193,7 @@ void Linkbot::setJointEventCallback (LinkbotJointEventCallback cb, void* userDat
     const bool enable = !!cb;
 
     try {
-        asyncFire(m->robot, MethodIn::enableJointEvent{enable}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableJointEvent, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1212,7 +1211,7 @@ void Linkbot::setJointEventCallback (std::function<void(int, LinkbotJointState, 
     const bool enable = !!cb;
 
     try {
-        asyncFire(m->robot, MethodIn::enableJointEvent{enable}, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableJointEvent, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1237,11 +1236,13 @@ void Linkbot::writeEeprom(uint32_t address, const uint8_t *data, size_t size)
         throw Error("Payload size too large");
     }
     try {
-        MethodIn::writeEeprom arg;
+        linkbot_robot_writeEeprom_In arg;
+        arg.has_address = true;
+        arg.has_data = true;
         arg.address = address;
         memcpy(arg.data.bytes, data, size);
         arg.data.size = size;
-        asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_writeEeprom_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1254,11 +1255,13 @@ void Linkbot::readEeprom(uint32_t address, size_t recvsize, uint8_t *buffer)
         throw Error("Payload size too large");
     }
     try {
-        MethodIn::readEeprom arg;
+        linkbot_robot_readEeprom_In arg;
+        arg.has_address = true;
+        arg.has_size = true;
         arg.address = address;
         arg.size = recvsize;
-        auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
-        memcpy(buffer, result.data.bytes, result.data.size);
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_readEeprom_tag, requestTimeout(), use_future).get();
+        memcpy(buffer, m->robotRpc.reply().readEeprom.data.bytes, m->robotRpc.reply().readEeprom.data.size);
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1271,11 +1274,13 @@ void Linkbot::writeTwi(uint32_t address, const uint8_t *data, size_t size)
         throw Error("Payload size too large");
     }
     try {
-        MethodIn::writeTwi arg;
+        linkbot_robot_writeTwi_In arg;
+        arg.has_address = true;
+        arg.has_data = true;
         arg.address = address;
         memcpy(arg.data.bytes, data, size);
         arg.data.size = size;
-        asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_writeTwi_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1288,11 +1293,13 @@ void Linkbot::readTwi(uint32_t address, size_t recvsize, uint8_t *buffer)
         throw Error("Payload size too large");
     }
     try {
-        MethodIn::readTwi arg;
+        linkbot_robot_readTwi_In arg;
+        arg.has_address = true;
+        arg.has_recvsize = true;
         arg.address = address;
         arg.recvsize = recvsize;
-        auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
-        memcpy(buffer, result.data.bytes, result.data.size);
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_readTwi_tag, requestTimeout(), use_future).get();
+        memcpy(buffer, m->robotRpc.reply().readTwi.data.bytes, m->robotRpc.reply().readTwi.data.size);
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1310,13 +1317,16 @@ void Linkbot::writeReadTwi(
         throw Error("Payload size too large");
     }
     try {
-        MethodIn::writeReadTwi arg;
+        linkbot_robot_writeReadTwi_In arg;
+        arg.has_address = true;
+        arg.has_recvsize = true;
+        arg.has_data = true;
         arg.address = address;
         arg.recvsize = recvsize;
         memcpy(arg.data.bytes, sendbuf, sendsize);
         arg.data.size = sendsize;
-        auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
-        memcpy(recvbuf, result.data.bytes, result.data.size);
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_writeReadTwi_tag, requestTimeout(), use_future).get();
+        memcpy(recvbuf, m->robotRpc.reply().readTwi.data.bytes, m->robotRpc.reply().readTwi.data.size);
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1326,10 +1336,12 @@ void Linkbot::writeReadTwi(
 void Linkbot::setPeripheralResetMask(int mask, int resetMask)
 {
     try {
-        MethodIn::setResetOnDisconnect arg;
+        linkbot_robot_setResetOnDisconnect_In arg;
+        arg.has_mask = true;
+        arg.has_peripheralResetMask = true;
         arg.mask = mask;
         arg.peripheralResetMask = resetMask;
-        auto result = asyncFire(m->robot, arg, requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(arg, linkbot_robot_RpcReply_setResetOnDisconnect_tag, requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1337,5 +1349,3 @@ void Linkbot::setPeripheralResetMask(int mask, int resetMask)
 }
 
 } // namespace
-
-#include <boost/asio/unyield.hpp>

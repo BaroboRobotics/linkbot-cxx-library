@@ -47,6 +47,7 @@ find_package(protobuf REQUIRED CONFIG NAMES protobuf)
 
 set(sources
     src/linkbot.cpp
+    src/daemon-status.cpp
     src/linkbot.c.cpp
     src/clinkbot.cpp
     src/clinkboti.cpp
@@ -58,6 +59,7 @@ set(sources
 )
 
 add_library(linkbot ${sources})
+target_compile_features(linkbot PUBLIC cxx_generic_lambdas)
 
 message("protobuf config: ${protobuf_CONFIG}")
 message("LINKING WITH: ${Protobuf_VERSION}")
@@ -71,7 +73,7 @@ target_link_libraries(linkbot
         Boost::system
         Boost::log
         Boost::thread
-        ${Protobuf_LIBRARY}
+        protobuf::libprotobuf
 )
 
 target_include_directories(linkbot
@@ -94,8 +96,6 @@ endif()
 
 set_target_properties(linkbot
     PROPERTIES
-        CXX_STANDARD 14
-        CXX_STANDARD_REQUIRED ON
         POSITION_INDEPENDENT_CODE ON
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}

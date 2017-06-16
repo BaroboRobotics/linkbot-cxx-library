@@ -19,9 +19,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <exception>
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <future>
 
 #include <cassert>
 #include <cmath>
@@ -37,7 +39,7 @@ void sendNewColor(barobo::Linkbot& linkbot, double tim) {
     linkbot.setLedColor(red, green, blue);
 }
 
-void lavaLamp (std::string serialId) {
+void lavaLamp (const std::string& serialId) {
     double t = 0;
     try {
         barobo::Linkbot linkbot { serialId };
@@ -48,7 +50,7 @@ void lavaLamp (std::string serialId) {
             t += 0.05;
         }
     }
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
         std::cout << std::hex;
         // FIXME: This serial ID should be information baked into e.what() in
         // some cases.
@@ -58,7 +60,7 @@ void lavaLamp (std::string serialId) {
 }
 
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) try {
     if (argc < 2) {
         printf("Usage: %s <serial-id> [<serial-id> ...]\n", argv[0]);
         return 1;
@@ -71,15 +73,18 @@ int main(int argc, char** argv) {
     assert(std::all_of(serialIds.cbegin(), serialIds.cend(),
                 [] (const std::string& s) { return 4 == s.size(); }));
 
-    std::vector<std::thread> lavaLampThreads;
+    std::vector<std::future<void>> lavaLampFutures;
 
-    for (auto s : serialIds) {
-        lavaLampThreads.emplace_back(lavaLamp, s);
+    for (const auto& s: serialIds) {
+        lavaLampFutures.emplace_back(std::async(std::launch::async, [s] { lavaLamp(s); }));
     }
 
-    for (auto& t: lavaLampThreads) {
-        t.join();
+    for (auto& f: lavaLampFutures) {
+        f.wait();
     }
 
     return 0;
+}
+catch (const std::exception& e) {
+    std::cerr << e.what() << '\n';
 }
