@@ -45,3 +45,16 @@ add_test(NAME test_c COMMAND test_c)
 add_executable(safetyangles safetyangles.cpp)
 target_link_libraries(safetyangles linkbot)
 add_test(NAME safetyangles COMMAND safetyangles)
+
+if(APPLE)
+    set(dest Contents/MacOS)
+else()
+    set(dest bin)
+endif()
+
+install(
+    TARGETS
+        lavalamp plotting testmovement testclinkbot testclinkboti testcallbacks testcallbacks2
+        testgroup test_c safetyangles
+    DESTINATION ${dest}
+)
