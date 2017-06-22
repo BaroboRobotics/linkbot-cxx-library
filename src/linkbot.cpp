@@ -63,7 +63,7 @@ std::string daemonHostName () {
 }
 
 uint16_t daemonPortNo () {
-    return 42000;
+    return 42001;
 }
 
 std::chrono::milliseconds requestTimeout () {
