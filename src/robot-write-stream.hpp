@@ -50,8 +50,8 @@ public:
     template <class T, class Token>
     auto async_write(const T& message, Token&& token) {
         linkbot_daemon_transmit_In transmitRequest{};
-        transmitRequest.destinations_count = 1;
-        strcpy(transmitRequest.destinations[0].value, serialId.c_str());
+        transmitRequest.has_destination = true;
+        strcpy(transmitRequest.destination.value, serialId.c_str());
         transmitRequest.has_payload = true;
         nanopb::assign(transmitRequest.payload.arg, message);
         composed::operation<TransmitOp<>>{}(*this, transmitRequest, std::forward<Token>(token));

@@ -113,6 +113,7 @@ private:
         , robotRpcClient(robotWriteStream)
         , robotRpc(robotRpcClient)
         , serialId(sid)
+        , connectEventFuture(connectEventPromise.get_future())
     {
         if (serialId.size() > 4) {
             throw boost::system::system_error{make_error_code(DaemonStatus::INVALID_SERIALID)};
@@ -143,6 +144,15 @@ private:
             throw boost::system::system_error{
                     make_error_code(DaemonStatus(daemonRpc.reply().addRobotRefs.status))};
         }
+
+        auto connectStatus = connectEventFuture.wait_for(5s);
+        BOOST_ASSERT(std::future_status::deferred != connectStatus);
+        if (std::future_status::timeout == connectStatus) {
+            throw boost::system::system_error{
+                    boost::asio::error::timed_out
+            };
+        }
+
         isMoving = 0;
     }
 
@@ -164,6 +174,12 @@ private:
 
     void event(const linkbot_daemon_DongleEvent& e) {
         BOOST_LOG(log) << "DongleEvent unimplemented";
+    }
+
+    void event(const linkbot_daemon_RobotEvent& e) {
+        if (e.has_serialId) {
+            BOOST_LOG(log) << std::string(e.serialId.value) << " powered on";
+        }
     }
 
     // ===================================================================================
@@ -224,17 +240,22 @@ private:
         }
     }
 
-    void event(const linkbot_robot_ConnectionTerminated& e) {
+    void event(const linkbot_robot_ConnectEvent& e) {
+        if (e.has_timestamp) {
+            BOOST_LOG(log) << "Connection established at " << e.timestamp;
+            if (connectEventFuture.valid()) {
+                connectEventPromise.set_value();
+            }
+        }
+    }
+
+    void event(const linkbot_robot_DisconnectEvent& e) {
         if (e.has_timestamp) {
             BOOST_LOG(log) << "Connection terminated at " << e.timestamp;
             if (connectionTerminatedCallback) {
                 connectionTerminatedCallback(e.timestamp);
             }
         }
-    }
-
-    void event(const linkbot_robot_PowerOnEvent& e) {
-        BOOST_LOG(log) << "PowerOnEvent unimplemented";
     }
 
 public:
@@ -322,6 +343,9 @@ public:
     std::string serialId;
 
     std::future<void> robotRunDone;
+
+    std::promise<void> connectEventPromise;
+    std::future<void> connectEventFuture;
 
     std::function<void(LinkbotButton, LinkbotButtonState, int)> buttonEventCallback;
     std::function<void(int,double, int)> encoderEventCallback;
