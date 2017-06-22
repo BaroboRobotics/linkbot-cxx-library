@@ -1132,7 +1132,7 @@ void Linkbot::setButtonEventCallback (LinkbotButtonEventCallback cb, void* userD
     const bool enable = !!cb;
 
     try {
-        m->robotRpc.async_do_request(REQUEST(enableButtonEvent, enable), requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableButtonEvent, true, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1150,7 +1150,7 @@ void Linkbot::setButtonEventCallback (std::function<void(LinkbotButton, LinkbotB
     const bool enable = !!cb;
 
     try {
-        m->robotRpc.async_do_request(REQUEST(enableButtonEvent, enable), requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableButtonEvent, true, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1217,7 +1217,7 @@ void Linkbot::setJointEventCallback (LinkbotJointEventCallback cb, void* userDat
     const bool enable = !!cb;
 
     try {
-        m->robotRpc.async_do_request(REQUEST(enableJointEvent, enable), requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableJointEvent, true, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
@@ -1235,7 +1235,7 @@ void Linkbot::setJointEventCallback (std::function<void(int, LinkbotJointState, 
     const bool enable = !!cb;
 
     try {
-        m->robotRpc.async_do_request(REQUEST(enableJointEvent, enable), requestTimeout(), use_future).get();
+        m->robotRpc.async_do_request(REQUEST(enableJointEvent, true, enable), requestTimeout(), use_future).get();
     }
     catch (std::exception& e) {
         throw Error(e.what());
