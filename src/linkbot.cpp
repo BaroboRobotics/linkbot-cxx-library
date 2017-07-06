@@ -200,8 +200,18 @@ private:
     }
 
     void event(const linkbot_robot_EncoderEvent& e) {
-        if (encoderEventCallback && e.has_encoder && e.has_value && e.has_timestamp) {
-            encoderEventCallback(e.encoder, util::radToDeg(e.value), e.timestamp);
+        if (encoderEventCallback) {
+            for(auto i = 0; i < 3; i++) {
+                if(
+                        e.has_mask && 
+                        (e.mask&(1<<i)) &&
+                        (e.values_count > i) &&
+                        e.has_timestamp
+                  ) 
+                {
+                    encoderEventCallback(i, util::radToDeg(e.values[i]), e.timestamp);
+                }
+            }
         }
     }
 
