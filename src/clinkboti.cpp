@@ -19,6 +19,10 @@
 #include <linkbot/error.hpp>
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.141592653589793
+#endif
+
 namespace barobo {
 
 CLinkbotI::CLinkbotI(const std::string& serialId)

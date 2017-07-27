@@ -36,6 +36,9 @@
 
 #include "rgbhashtable.h"
 
+#ifndef M_PI
+#define M_PI 3.141592653589793
+#endif
 
 #define LINKBOT_MAX_SPEED 200
 

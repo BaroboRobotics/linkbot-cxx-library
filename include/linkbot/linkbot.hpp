@@ -20,6 +20,7 @@
 
 #include <linkbot/linkbot.h>
 
+#include <array>
 #include <functional>
 #include <iostream>
 #include <map>
