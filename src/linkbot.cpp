@@ -203,11 +203,11 @@ private:
         if (encoderEventCallback) {
             for(auto i = 0; i < 3; i++) {
                 if(
-                        e.has_mask && 
+                        e.has_mask &&
                         (e.mask&(1<<i)) &&
                         (e.values_count > i) &&
                         e.has_timestamp
-                  ) 
+                  )
                 {
                     encoderEventCallback(i, util::radToDeg(e.values[i]), e.timestamp);
                 }

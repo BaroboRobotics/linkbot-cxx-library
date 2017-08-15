@@ -40,10 +40,36 @@ endif()
 
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.59.0 REQUIRED COMPONENTS system log_setup log filesystem thread)
+find_package(Threads)
 
 find_package(cxx-util)
 find_package(linkbot-interfaces)
-find_package(protobuf REQUIRED CONFIG NAMES protobuf)
+
+set(protobuf_MODULE_COMPATIBLE ON)
+find_package(Protobuf REQUIRED)
+add_library(baroboprotobuf IMPORTED INTERFACE)
+set_target_properties(baroboprotobuf PROPERTIES
+    INTERFACE_LINK_LIBRARIES "${PROTOBUF_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${PROTOBUF_INCLUDE_DIRS}"
+)
+protobuf_generate_cpp(message_pb_srcs message_pb_hdrs deps/python-prex/proto/message.proto)
+# Generate a C++ source files for PREX's message.proto.
+#
+# There are some nuances here that deserve explanation.
+#   1. The CMake build of protobuf does not properly support cross-compilation as of version 3.3.
+#   2. protobuf can only be built using CMake with MSVC.
+#   3. Consequently, find_package() must be prepared to find either the CMake config package
+#      installed from an MSVC build or the find-module shipped with CMake (for an autotools build).
+#   4. We must use the common interface provided by both the config package and find-module: i.e.,
+#      we cannot use the protobuf::libprotobuf imported target.
+#   5. We rely on protobuf_generate_cpp(), but that function is only defined if we set
+#      protobuf_MODULE_COMPATIBLE=ON when finding the config package.
+
+set(message_pb_hdrs_dirs)
+foreach(hdr ${message_pb_hdrs})
+    get_filename_component(dir ${hdr} PATH)
+    list(APPEND message_pb_hdrs_dirs ${dir})
+endforeach()
 
 set(sources
     src/linkbot.cpp
@@ -54,7 +80,8 @@ set(sources
     src/clinkbotigroup.cpp
     src/clinkbotlgroup.cpp
     src/clinkbotl.cpp
-    src/message.pb.cc
+    ${message_pb_srcs}
+    ${message_pb_hdrs}
     src/rgbhashtable.c.cpp
 )
 
@@ -65,7 +92,7 @@ message("protobuf config: ${protobuf_CONFIG}")
 message("LINKING WITH: ${Protobuf_VERSION}")
 
 target_link_libraries(linkbot
-    PUBLIC
+    PRIVATE
         barobo::cxx-util
         barobo::daemon-proto
         barobo::robot-proto
@@ -73,11 +100,14 @@ target_link_libraries(linkbot
         Boost::system
         Boost::log
         Boost::thread
-        protobuf::libprotobuf
+        baroboprotobuf
+    PUBLIC
+        Threads::Threads
 )
 
 target_include_directories(linkbot
     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    PRIVATE ${message_pb_hdrs_dirs}
 )
 
 target_compile_definitions(linkbot
