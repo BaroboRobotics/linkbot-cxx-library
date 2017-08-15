@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2.1)
-project(liblinkbot VERSION 0.3.2 LANGUAGES CXX C)
+project(liblinkbot VERSION 0.4.0 LANGUAGES CXX C)
 
 set(preRelease "")
 # Examples: dev, rc.0, rc.1, some-feature-branch-name
