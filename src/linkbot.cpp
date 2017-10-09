@@ -674,7 +674,7 @@ void Linkbot::setJointStates(
         }
     }
     try {
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
                 bool(mask&0x01), { true, goalType[0], true, coefficients[0], true, controllerType[0] },
                 bool(mask&0x02), { true, goalType[1], true, coefficients[1], true, controllerType[1] },
                 bool(mask&0x04), { true, goalType[2], true, coefficients[2], true, controllerType[2] }),
@@ -747,7 +747,7 @@ void Linkbot::setJointStates(
             }
         };
 
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01),
             { true, goalType[0], true, coefficients[0], true, controllerType[0],
                 hasTimeouts[0], float(timeout1), hasTimeouts[0], js_to_int(end1)},
@@ -864,7 +864,7 @@ void Linkbot::drive (int mask, double a0, double a1, double a2)
 {
     try {
         m->setMoving(mask);
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), { true, linkbot_robot_Goal_Type_RELATIVE,
                                true, float(util::degToRad(a0)),
                                true, linkbot_robot_Goal_Controller_PID
@@ -888,7 +888,7 @@ void Linkbot::driveTo (int mask, double a0, double a1, double a2)
 {
     try {
         m->setMoving(mask);
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), { true, linkbot_robot_Goal_Type_ABSOLUTE,
                                true, float(util::degToRad(a0)),
                                true, linkbot_robot_Goal_Controller_PID
@@ -911,7 +911,7 @@ void Linkbot::driveTo (int mask, double a0, double a1, double a2)
 void Linkbot::move (int mask, double a0, double a1, double a2) {
     try {
         m->setMoving(mask);
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), { true, linkbot_robot_Goal_Type_RELATIVE,
                                true, float(util::degToRad(a0)),
                                false},
@@ -931,7 +931,7 @@ void Linkbot::move (int mask, double a0, double a1, double a2) {
 void Linkbot::moveContinuous (int mask, double c0, double c1, double c2) {
     try {
         m->setMoving(mask);
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), { true, linkbot_robot_Goal_Type_INFINITE, true, float(c0), false },
             bool(mask&0x02), { true, linkbot_robot_Goal_Type_INFINITE, true, float(c1), false },
             bool(mask&0x04), { true, linkbot_robot_Goal_Type_INFINITE, true, float(c2), false }
@@ -974,7 +974,7 @@ void Linkbot::moveAccel(int mask, int relativeMask,
         };
         
         m->setMoving(mask);
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), {
                 true, motionType[0],
                 true, float(util::degToRad(omega0_i)),
@@ -1013,7 +1013,7 @@ void Linkbot::moveSmooth(int mask, int relativeMask, double a0, double a1, doubl
 
     try {
         m->setMoving(mask);
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), {
                 true, motionType[0],
                 true, float(util::degToRad(a0)),
@@ -1039,7 +1039,7 @@ void Linkbot::moveSmooth(int mask, int relativeMask, double a0, double a1, doubl
 void Linkbot::moveTo (int mask, double a0, double a1, double a2) {
     try {
         m->setMoving(mask);
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), { true, linkbot_robot_Goal_Type_ABSOLUTE, true, float(util::degToRad(a0)) },
             bool(mask&0x02), { true, linkbot_robot_Goal_Type_ABSOLUTE, true, float(util::degToRad(a1)) },
             bool(mask&0x04), { true, linkbot_robot_Goal_Type_ABSOLUTE, true, float(util::degToRad(a2)) }
@@ -1064,7 +1064,7 @@ void Linkbot::moveWait(int mask) {
 void Linkbot::motorPower(int mask, int m1, int m2, int m3)
 {
     try {
-        m->robotRpc.async_do_request(REQUEST(move,
+        m->robotRpc.async_do_request(REQUEST(robotMove,
             bool(mask&0x01), { true, linkbot_robot_Goal_Type_INFINITE,
                                true, float(m1),
                                true, linkbot_robot_Goal_Controller_PID
